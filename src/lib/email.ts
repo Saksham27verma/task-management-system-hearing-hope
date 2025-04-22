@@ -1,0 +1,175 @@
+import nodemailer from 'nodemailer';
+
+// Email configuration
+const EMAIL_HOST = process.env.EMAIL_HOST!;
+const EMAIL_PORT = Number(process.env.EMAIL_PORT!);
+const EMAIL_USER = process.env.EMAIL_USER!;
+const EMAIL_PASS = process.env.EMAIL_PASS!;
+
+// Create transporter
+const transporter = nodemailer.createTransport({
+  host: EMAIL_HOST,
+  port: EMAIL_PORT,
+  secure: EMAIL_PORT === 465,
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
+  },
+});
+
+// Email templates
+export const emailTemplates = {
+  taskAssigned: (
+    recipientName: string,
+    taskTitle: string,
+    taskDescription: string,
+    dueDate: Date,
+    assignerName: string
+  ) => ({
+    subject: `New Task Assigned: ${taskTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="background-color: #EE6417; padding: 20px; text-align: center; color: white;">
+          <h1>New Task Assigned</h1>
+        </div>
+        <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+          <p>Hello ${recipientName},</p>
+          <p>A new task has been assigned to you:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
+            <h2 style="margin-top: 0; color: #EE6417;">${taskTitle}</h2>
+            <p><strong>Description:</strong> ${taskDescription}</p>
+            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
+            <p><strong>Assigned By:</strong> ${assignerName}</p>
+          </div>
+          <p>Please log in to the Hearing Hope Task Management System to view the task details and update your progress.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background-color: #3aa986; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Task</a>
+          </div>
+          <p style="margin-top: 30px;">Thank you,<br>Hearing Hope Team</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+          <p>This is an automated message from the Hearing Hope Task Management System.</p>
+        </div>
+      </div>
+    `,
+  }),
+  
+  taskReminder: (
+    recipientName: string,
+    taskTitle: string,
+    dueDate: Date,
+    daysRemaining: number
+  ) => ({
+    subject: `Task Reminder: ${taskTitle} due in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="background-color: #EE6417; padding: 20px; text-align: center; color: white;">
+          <h1>Task Reminder</h1>
+        </div>
+        <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+          <p>Hello ${recipientName},</p>
+          <p>This is a reminder that the following task is due in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
+            <h2 style="margin-top: 0; color: #EE6417;">${taskTitle}</h2>
+            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
+          </div>
+          <p>Please log in to the Hearing Hope Task Management System to update your progress and complete the task on time.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background-color: #3aa986; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Task</a>
+          </div>
+          <p style="margin-top: 30px;">Thank you,<br>Hearing Hope Team</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+          <p>This is an automated message from the Hearing Hope Task Management System.</p>
+        </div>
+      </div>
+    `,
+  }),
+  
+  newNotice: (
+    recipientName: string,
+    noticeTitle: string,
+    noticeContent: string,
+    postedBy: string
+  ) => ({
+    subject: `New Notice: ${noticeTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="background-color: #EE6417; padding: 20px; text-align: center; color: white;">
+          <h1>New Notice Posted</h1>
+        </div>
+        <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+          <p>Hello ${recipientName},</p>
+          <p>A new notice has been posted:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
+            <h2 style="margin-top: 0; color: #EE6417;">${noticeTitle}</h2>
+            <p>${noticeContent}</p>
+            <p><strong>Posted By:</strong> ${postedBy}</p>
+          </div>
+          <p>Please log in to the Hearing Hope Task Management System to view the full notice.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background-color: #3aa986; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Notice</a>
+          </div>
+          <p style="margin-top: 30px;">Thank you,<br>Hearing Hope Team</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+          <p>This is an automated message from the Hearing Hope Task Management System.</p>
+        </div>
+      </div>
+    `,
+  }),
+  
+  newMessage: (
+    recipientName: string,
+    senderName: string,
+    messageSubject: string,
+    messagePreview: string
+  ) => ({
+    subject: `New Message: ${messageSubject}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="background-color: #EE6417; padding: 20px; text-align: center; color: white;">
+          <h1>New Message</h1>
+        </div>
+        <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+          <p>Hello ${recipientName},</p>
+          <p>You have received a new message from ${senderName}:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
+            <h2 style="margin-top: 0; color: #EE6417;">${messageSubject}</h2>
+            <p>${messagePreview}...</p>
+          </div>
+          <p>Please log in to the Hearing Hope Task Management System to read the full message and reply.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXTAUTH_URL}/dashboard" style="background-color: #3aa986; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Message</a>
+          </div>
+          <p style="margin-top: 30px;">Thank you,<br>Hearing Hope Team</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+          <p>This is an automated message from the Hearing Hope Task Management System.</p>
+        </div>
+      </div>
+    `,
+  }),
+};
+
+// Send email function
+export async function sendEmail(
+  to: string | string[],
+  subject: string,
+  html: string
+): Promise<boolean> {
+  try {
+    const mailOptions = {
+      from: `"Hearing Hope" <${EMAIL_USER}>`,
+      to: Array.isArray(to) ? to.join(',') : to,
+      subject,
+      html,
+    };
+    
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending email:', error);
+    return false;
+  }
+} 

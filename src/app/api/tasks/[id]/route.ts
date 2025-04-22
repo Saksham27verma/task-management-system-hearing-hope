@@ -1,0 +1,335 @@
+import { NextRequest, NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/db';
+import Task from '@/models/Task';
+import { withAuth, hasRole } from '@/lib/auth';
+import GoogleCalendarToken from '@/models/GoogleCalendarToken';
+import { createTaskEvent, updateTaskEvent, deleteTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
+import User from '@/models/User';
+import { sendEmail } from '@/lib/email';
+
+// GET /api/tasks/[id] - Get a specific task by ID
+export async function GET(
+  request: NextRequest,
+  { params }: any
+) {
+  // Get the task ID from params
+  const taskId = params.id;
+  
+  return withAuth(request, async (user) => {
+    try {
+      await connectToDatabase();
+      
+      const task = await Task.findById(taskId)
+        .populate('assignedTo', 'name email')
+        .populate('assignedBy', 'name email')
+        .populate('progressUpdates.updatedBy', 'name');
+      
+      if (!task) {
+        return NextResponse.json(
+          { success: false, message: 'Task not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Check if user has permission to view this task
+      if (user.role === 'EMPLOYEE' && 
+          task.assignedTo._id.toString() !== user.userId &&
+          task.assignedBy._id.toString() !== user.userId) {
+        return NextResponse.json(
+          { success: false, message: 'Not authorized to view this task' },
+          { status: 403 }
+        );
+      }
+      
+      return NextResponse.json({
+        success: true,
+        task
+      });
+    } catch (error) {
+      console.error(`Error fetching task ${taskId}:`, error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to fetch task' },
+        { status: 500 }
+      );
+    }
+  });
+}
+
+// PUT /api/tasks/[id] - Update a task
+export async function PUT(
+  request: NextRequest,
+  { params }: any
+) {
+  // Get the task ID from params
+  const taskId = params.id;
+  
+  return withAuth(request, async (user) => {
+    try {
+      const {
+        title,
+        description,
+        assignedTo,
+        taskType,
+        status,
+        dueDate,
+        remarks
+      } = await request.json();
+      
+      // Validate that if assignedTo is provided, it's an array and not empty
+      if (assignedTo && (!Array.isArray(assignedTo) || assignedTo.length === 0)) {
+        return NextResponse.json(
+          { success: false, message: 'At least one user must be assigned to the task' },
+          { status: 400 }
+        );
+      }
+      
+      await connectToDatabase();
+      
+      // Find the task
+      const task = await Task.findById(taskId);
+      
+      if (!task) {
+        return NextResponse.json(
+          { success: false, message: 'Task not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Keep track of previous assignees to handle notifications for new assignees
+      const previousAssignedTo = Array.isArray(task.assignedTo) 
+        ? task.assignedTo.map(id => id.toString())
+        : [task.assignedTo.toString()];
+        
+      // Track newly assigned users
+      let newAssignees: string[] = [];
+        
+      if (assignedTo) {
+        const currentAssignedTo = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+        newAssignees = currentAssignedTo.filter(userId => !previousAssignedTo.includes(userId.toString()));
+      }
+      
+      // Check if user has permission to update this task
+      if (user.role === 'EMPLOYEE') {
+        // Check if employee is one of the assigned users
+        const isAssigned = Array.isArray(task.assignedTo)
+          ? task.assignedTo.some(userId => userId.toString() === user.userId)
+          : task.assignedTo.toString() === user.userId;
+            
+        if (!isAssigned) {
+          return NextResponse.json(
+            { success: false, message: 'Not authorized to update this task' },
+            { status: 403 }
+          );
+        }
+        
+        // Employees can only update status and add progress updates, not reassign or change other fields
+        if (assignedTo || title || description || taskType || dueDate) {
+          return NextResponse.json(
+            { success: false, message: 'Employees can only update task status' },
+            { status: 403 }
+          );
+        }
+      } else if (user.role === 'MANAGER' && task.assignedBy.toString() !== user.userId) {
+        return NextResponse.json(
+          { success: false, message: 'Not authorized to update this task' },
+          { status: 403 }
+        );
+      }
+      
+      // Update task fields
+      if (title) task.title = title;
+      if (description) task.description = description;
+      if (assignedTo) task.assignedTo = assignedTo;
+      if (taskType) task.taskType = taskType;
+      if (status) {
+        task.status = status;
+        
+        // If task is being marked as completed, set completedDate
+        if (status === 'COMPLETED' && task.status !== 'COMPLETED') {
+          task.completedDate = new Date();
+        } else if (status !== 'COMPLETED') {
+          task.completedDate = undefined;
+        }
+      }
+      if (dueDate) task.dueDate = new Date(dueDate);
+      if (remarks !== undefined) task.remarks = remarks;
+      
+      // Save updated task
+      await task.save();
+      
+      // If task was assigned to new users, send email notifications
+      if (newAssignees.length > 0) {
+        try {
+          // Get assigner details
+          const assignerUser = await User.findById(user.userId);
+          const assignerName = assignerUser ? assignerUser.name : 'Administrator';
+          
+          // Send email to each new assignee
+          for (const userId of newAssignees) {
+            const assignedUser = await User.findById(userId);
+            
+            if (assignedUser && assignedUser.email) {
+              const emailHtml = `
+                <h2>You have been assigned a new task</h2>
+                <p>Hello ${assignedUser.name},</p>
+                <p>You have been assigned to the following task:</p>
+                <p><strong>Title:</strong> ${task.title}</p>
+                <p><strong>Description:</strong> ${task.description}</p>
+                <p><strong>Due Date:</strong> ${task.dueDate.toDateString()}</p>
+                <p><strong>Assigned By:</strong> ${assignerName}</p>
+                <p>Please log in to the Task Management System to view details and update your progress.</p>
+              `;
+              
+              await sendEmail(
+                assignedUser.email,
+                `New Task Assigned: ${task.title}`,
+                emailHtml
+              );
+            }
+          }
+        } catch (emailError) {
+          console.error('Error sending email notifications to new assignees:', emailError);
+          // Continue even if email fails
+        }
+      }
+      
+      // Check if Google Calendar sync is needed - for real-time setting
+      try {
+        // Populate the task for Google Calendar sync
+        const populatedTask = await Task.findById(task._id)
+          .populate('assignedTo', 'name email')
+          .populate('assignedBy', 'name email')
+          .lean();
+          
+        // Get all current assignees
+        const currentAssignees = Array.isArray(task.assignedTo) 
+          ? task.assignedTo.map(id => id.toString())
+          : [task.assignedTo.toString()];
+          
+        // For each assignee, check if they have Google Calendar connected
+        for (const userId of currentAssignees) {
+          // Check if assignee has Google Calendar connected with real-time sync
+          const tokenRecord = await GoogleCalendarToken.findOne({ 
+            userId: userId,
+            'syncSettings.syncFrequency': 'realtime'
+          });
+          
+          // If connected and real-time sync is enabled, sync to Google Calendar
+          if (tokenRecord && tokenRecord.syncSettings.taskTypes.includes(task.taskType)) {
+            try {
+              // Get a valid access token (will refresh if expired)
+              const validAccessToken = await getValidAccessToken(userId);
+              
+              if (!validAccessToken) {
+                console.error('Could not get a valid access token for Google Calendar sync');
+                continue; // Skip this user and try the next one
+              }
+              
+              // Only update existing Google Calendar events, don't create new ones during editing
+              if (task.googleCalendarEventId) {
+                await updateTaskEvent(validAccessToken, populatedTask, task.googleCalendarEventId);
+              } else if (newAssignees.includes(userId)) {
+                // Create a new event only for newly assigned users
+                const eventResult = await createTaskEvent(validAccessToken, populatedTask);
+                
+                // Store the event ID in the task if it doesn't have one yet
+                if (eventResult && eventResult.id && !task.googleCalendarEventId) {
+                  task.googleCalendarEventId = eventResult.id;
+                  await task.save();
+                }
+              }
+            } catch (syncError) {
+              // Log error but don't affect the main task update response
+              console.error(`Error syncing updated task to Google Calendar for user ${userId}:`, syncError);
+            }
+          }
+        }
+      } catch (calendarError) {
+        // Log error but don't affect the main task update response
+        console.error('Error checking Google Calendar connection:', calendarError);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Task updated successfully'
+      });
+    } catch (error) {
+      console.error(`Error updating task ${taskId}:`, error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to update task' },
+        { status: 500 }
+      );
+    }
+  });
+}
+
+// DELETE /api/tasks/[id] - Delete a task
+export async function DELETE(
+  request: NextRequest,
+  { params }: any
+) {
+  // Get the task ID from params
+  const taskId = params.id;
+  
+  return withAuth(request, async (user) => {
+    // Only allow managers and admins to delete tasks
+    if (!hasRole(user, 'SUPER_ADMIN', 'MANAGER')) {
+      return NextResponse.json(
+        { success: false, message: 'Not authorized to delete tasks' },
+        { status: 403 }
+      );
+    }
+    
+    try {
+      await connectToDatabase();
+      
+      // Find the task
+      const task = await Task.findById(taskId);
+      
+      if (!task) {
+        return NextResponse.json(
+          { success: false, message: 'Task not found' },
+          { status: 404 }
+        );
+      }
+      
+      // If user is a manager, check if they assigned the task
+      if (user.role === 'MANAGER' && task.assignedBy.toString() !== user.userId) {
+        return NextResponse.json(
+          { success: false, message: 'Not authorized to delete this task' },
+          { status: 403 }
+        );
+      }
+      
+      // Delete Google Calendar event if it exists
+      if (task.googleCalendarEventId) {
+        try {
+          const tokenRecord = await GoogleCalendarToken.findOne({
+            userId: task.assignedTo.toString()
+          });
+          
+          if (tokenRecord) {
+            await deleteTaskEvent(tokenRecord.accessToken, task.googleCalendarEventId);
+          }
+        } catch (calendarError) {
+          // Log error but don't affect the main task deletion
+          console.error('Error deleting Google Calendar event:', calendarError);
+        }
+      }
+      
+      // Delete the task
+      await Task.findByIdAndDelete(taskId);
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Task deleted successfully'
+      });
+    } catch (error) {
+      console.error(`Error deleting task ${taskId}:`, error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to delete task' },
+        { status: 500 }
+      );
+    }
+  });
+} 
