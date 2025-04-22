@@ -70,4 +70,4 @@ build/
 # Cache directories
 .npm
 .eslintcache
-.cache 
+.cache .env.production
