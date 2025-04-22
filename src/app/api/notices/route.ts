@@ -4,6 +4,7 @@ import Notice from '@/models/Notice';
 import User from '@/models/User';
 import { withAuth, hasRole } from '@/lib/auth';
 import { sendEmail, emailTemplates } from '@/lib/email';
+import Notification from '@/models/Notification';
 
 // GET /api/notices - Get all notices
 export async function GET(request: NextRequest) {
@@ -146,6 +147,25 @@ export async function POST(request: NextRequest) {
               emailTemplate.subject,
               emailTemplate.html
             );
+            
+            // Send in-app notifications to all users
+            for (const recipient of users) {
+              try {
+                const notification = new Notification({
+                  userId: recipient._id.toString(),
+                  type: 'notice',
+                  title: 'New Notice Posted',
+                  message: title,
+                  link: `/dashboard/notices`,
+                  read: false,
+                  createdAt: new Date()
+                });
+                
+                await notification.save();
+              } catch (notifyError) {
+                console.error('Error creating in-app notification:', notifyError);
+              }
+            }
           }
         } catch (emailError) {
           console.error('Error sending notice notifications:', emailError);

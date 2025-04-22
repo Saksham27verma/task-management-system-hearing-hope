@@ -50,6 +50,8 @@ A comprehensive task management system built for Hearing Hope organization. The 
    MONGODB_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret
    NEXT_PUBLIC_APP_URL=http://localhost:3000
+   NEXT_PUBLIC_GOOGLE_API_KEY=YOUR_API_KEY_HERE
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=YOUR_CLIENT_ID_HERE.apps.googleusercontent.com
    ```
 
 4. Run the development server:
@@ -89,4 +91,28 @@ This project is proprietary and confidential. All rights reserved.
 
 - Hearing Hope organization for the opportunity to develop this system
 - Material-UI team for the excellent component library
-- Next.js team for the robust framework 
+- Next.js team for the robust framework
+
+## Google Meet Integration
+
+To use the Google Meet integration feature in the meetings module:
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
+2. Ensure the Google Calendar API is enabled for your project (the same one used for calendar syncing)
+3. Use your existing OAuth 2.0 credentials that were set up for calendar integration
+4. Make sure your credentials have:
+   - The proper scopes including `https://www.googleapis.com/auth/calendar`
+   - Your application URL (e.g., `http://localhost:3000`) in Authorized JavaScript origins
+   - Your application URL with path (e.g., `http://localhost:3000/dashboard/meetings`) in Authorized redirect URIs
+5. Add your existing API key and Client ID to your `.env.local` file:
+   ```
+   NEXT_PUBLIC_GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY
+   NEXT_PUBLIC_GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+   ```
+
+### Meeting Functionality
+
+- Create Google Meet meetings that automatically appear in your Google Calendar
+- The Google Calendar API is used to create events with Google Meet conferencing
+- Join and manage meetings directly from the dashboard
+- Uses the same Google authentication as the calendar integration 

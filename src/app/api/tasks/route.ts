@@ -7,6 +7,7 @@ import User from '@/models/User';
 import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
 import { withPermission } from '@/lib/auth';
+import Notification from '@/models/Notification';
 
 // GET /api/tasks - Get all tasks (with filtering)
 export async function GET(request: NextRequest) {
@@ -168,7 +169,50 @@ export async function POST(request: NextRequest) {
               emailTemplate.subject,
               emailTemplate.html
             );
+            
+            // Send in-app notification to the assigned user
+            try {
+              // Directly create notification instead of using fetch
+              const newNotification = new Notification({
+                userId: userId,
+                type: 'task',
+                title: 'New Task Assigned',
+                message: `${title} is assigned to you. Due ${dueDateFormatted.toLocaleDateString()}.`,
+                link: `/dashboard/tasks/${newTask._id}`,
+                read: false,
+                createdAt: new Date()
+              });
+              
+              await newNotification.save();
+            } catch (notifyError) {
+              console.error('Error creating in-app notification:', notifyError);
+            }
           }
+        }
+        
+        // Send notification to admin users about new task creation
+        try {
+          // Find all super admin users
+          const adminUsers = await User.find({ role: 'SUPER_ADMIN' });
+          
+          for (const admin of adminUsers) {
+            if (admin._id.toString() !== user.userId) { // Don't notify the creator
+              // Create notification directly using the model
+              const adminNotification = new Notification({
+                userId: admin._id.toString(),
+                type: 'task',
+                title: 'New Task Created',
+                message: `${assignerName} created a new task: ${title}`,
+                link: `/dashboard/tasks/${newTask._id}`,
+                read: false,
+                createdAt: new Date()
+              });
+              
+              await adminNotification.save();
+            }
+          }
+        } catch (adminNotifyError) {
+          console.error('Error creating admin notifications:', adminNotifyError);
         }
       } catch (emailError) {
         console.error('Error sending task assignment emails:', emailError);

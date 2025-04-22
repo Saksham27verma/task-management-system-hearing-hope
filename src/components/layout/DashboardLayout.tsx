@@ -33,6 +33,7 @@ import {
   BarChart as BarChartIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  Videocam as VideoIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import { useRouter, usePathname } from 'next/navigation';
@@ -42,9 +43,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import dynamic from 'next/dynamic';
 import Permission from '@/components/common/Permission';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
-// Dynamically import the WalkthroughTour component with SSR disabled
-// This prevents hydration errors due to localStorage usage
+// Dynamically import components to prevent SSR issues
 const WalkthroughTour = dynamic(
   () => import('@/components/onboarding/WalkthroughTour'),
   { ssr: false }
@@ -145,6 +146,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       icon: <MessageIcon />,
       href: '/dashboard/messages',
       permissions: ['messages:read'],
+      roles: ['SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'],
+    },
+    {
+      label: 'Meetings',
+      icon: <VideoIcon />,
+      href: '/dashboard/meetings',
+      permissions: ['meetings:read'],
       roles: ['SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'],
     },
     {
@@ -330,6 +338,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
               </IconButton>
             </Tooltip>
+            
+            {/* Add Notification Bell here */}
+            <NotificationBell />
             
             <Typography 
               variant="subtitle1" 

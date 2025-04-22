@@ -6,6 +6,7 @@ import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, updateTaskEvent, deleteTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
 import User from '@/models/User';
 import { sendEmail } from '@/lib/email';
+import Notification from '@/models/Notification';
 
 // GET /api/tasks/[id] - Get a specific task by ID
 export async function GET(
@@ -142,13 +143,92 @@ export async function PUT(
       if (assignedTo) task.assignedTo = assignedTo;
       if (taskType) task.taskType = taskType;
       if (status) {
+        // Track previous status for notifications
+        const previousStatus = task.status;
+        
         task.status = status;
         
         // If task is being marked as completed, set completedDate
-        if (status === 'COMPLETED' && task.status !== 'COMPLETED') {
+        if (status === 'COMPLETED' && previousStatus !== 'COMPLETED') {
           task.completedDate = new Date();
+          
+          // Send notification for task completion
+          try {
+            // Notify admin users about task completion
+            const adminUsers = await User.find({ role: 'SUPER_ADMIN' });
+            
+            for (const admin of adminUsers) {
+              const notification = new Notification({
+                userId: admin._id.toString(),
+                type: 'task',
+                title: 'Task Completed',
+                message: `Task "${task.title}" has been marked as complete.`,
+                link: `/dashboard/tasks/${task._id}`,
+                read: false,
+                createdAt: new Date()
+              });
+              
+              await notification.save();
+            }
+            
+            // Notify the task creator
+            if (task.assignedBy.toString() !== user.userId) {
+              const notification = new Notification({
+                userId: task.assignedBy.toString(),
+                type: 'task',
+                title: 'Task Completed',
+                message: `Task "${task.title}" has been marked as complete.`,
+                link: `/dashboard/tasks/${task._id}`,
+                read: false,
+                createdAt: new Date()
+              });
+              
+              await notification.save();
+            }
+          } catch (notifyError) {
+            console.error('Error sending task completion notifications:', notifyError);
+          }
         } else if (status !== 'COMPLETED') {
           task.completedDate = undefined;
+          
+          // Send notification for status change (if not to completed, which is handled above)
+          if (status !== previousStatus) {
+            try {
+              // Notify admin users about status change
+              const adminUsers = await User.find({ role: 'SUPER_ADMIN' });
+              
+              for (const admin of adminUsers) {
+                const notification = new Notification({
+                  userId: admin._id.toString(),
+                  type: 'status',
+                  title: 'Task Status Updated',
+                  message: `Task "${task.title}" changed from ${previousStatus} to ${status}.`,
+                  link: `/dashboard/tasks/${task._id}`,
+                  read: false,
+                  createdAt: new Date()
+                });
+                
+                await notification.save();
+              }
+              
+              // Notify the task creator
+              if (task.assignedBy.toString() !== user.userId) {
+                const notification = new Notification({
+                  userId: task.assignedBy.toString(),
+                  type: 'status',
+                  title: 'Task Status Updated',
+                  message: `Task "${task.title}" changed from ${previousStatus} to ${status}.`,
+                  link: `/dashboard/tasks/${task._id}`,
+                  read: false,
+                  createdAt: new Date()
+                });
+                
+                await notification.save();
+              }
+            } catch (notifyError) {
+              console.error('Error sending status change notifications:', notifyError);
+            }
+          }
         }
       }
       if (dueDate) task.dueDate = new Date(dueDate);

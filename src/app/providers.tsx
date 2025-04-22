@@ -7,6 +7,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider, useThemeMode } from '@/contexts/ThemeContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { getTheme } from '@/lib/theme';
 import { DashboardLoadingProvider } from './dashboard-loading';
 
@@ -29,9 +30,11 @@ export default function Providers({ children }: { children: ReactNode }) {
       <ThemeWrapper>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <AuthProvider>
-            <DashboardLoadingProvider>
-              {children}
-            </DashboardLoadingProvider>
+            <NotificationProvider>
+              <DashboardLoadingProvider>
+                {children}
+              </DashboardLoadingProvider>
+            </NotificationProvider>
           </AuthProvider>
         </LocalizationProvider>
       </ThemeWrapper>
