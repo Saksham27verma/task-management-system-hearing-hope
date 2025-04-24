@@ -1,12 +1,10 @@
 /**
  * Global Error Handler for API Routes
  * 
- * This module provides utilities for consistent error handling across API routes
- * and integration with Sentry for error tracking.
+ * This module provides utilities for consistent error handling across API routes.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as Sentry from '@sentry/nextjs';
 
 /**
  * Error types for consistent error codes and messages
@@ -67,7 +65,7 @@ export class ApiError extends Error {
 }
 
 /**
- * Handle API errors with Sentry integration
+ * Handle API errors with logging
  * 
  * @param error The error to handle
  * @param request Optional NextRequest for context
@@ -89,21 +87,30 @@ export function handleApiError(error: unknown, request?: NextRequest): NextRespo
     };
     details = error.details;
     
-    // Only log 5xx errors to Sentry (client errors aren't as important)
+    // Log details for server errors
     if (error.status >= 500) {
-      Sentry.captureException(error);
+      console.error('Server Error Details:', {
+        status: error.status,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        stack: error.stack
+      });
     }
   } else if (error instanceof Error) {
-    // For standard errors, capture in Sentry
+    // For standard errors, log with stack trace
     apiError = {
       ...ErrorTypes.INTERNAL_ERROR,
       message: process.env.NODE_ENV === 'development' ? error.message : ErrorTypes.INTERNAL_ERROR.message
     };
-    Sentry.captureException(error);
+    console.error('Unhandled Error:', {
+      message: error.message,
+      stack: error.stack
+    });
     
-    // Add request info for better context
+    // Log request info for better context
     if (request) {
-      Sentry.setContext("request", {
+      console.error('Request Context:', {
         url: request.url,
         method: request.method,
         headers: Object.fromEntries(request.headers.entries())
