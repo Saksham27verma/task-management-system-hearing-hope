@@ -423,7 +423,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -436,7 +436,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -448,7 +448,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -460,7 +460,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -472,7 +472,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -484,7 +484,7 @@ export default function ExportReports({ reportData, period, role, startDate, end
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={{ xs: 6 }}>
               <FormControlLabel
                 control={
                   <Checkbox 
