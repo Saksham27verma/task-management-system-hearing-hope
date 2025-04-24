@@ -32,6 +32,9 @@ import 'jspdf-autotable';
 interface ExportReportsProps {
   reportData: any;
   period: string;
+  role?: string;
+  startDate?: Date | null;
+  endDate?: Date | null;
 }
 
 // Extend the jsPDF type to include the autoTable method
@@ -41,7 +44,7 @@ declare module 'jspdf' {
   }
 }
 
-export default function ExportReports({ reportData, period }: ExportReportsProps) {
+export default function ExportReports({ reportData, period, role, startDate, endDate }: ExportReportsProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exportType, setExportType] = useState<'csv' | 'pdf'>('csv');
@@ -197,6 +200,15 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
       const dateStr = format(new Date(), 'yyyy-MM-dd');
       const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
       
+      // Generate date range string if dates are provided
+      let dateRangeStr = '';
+      if (startDate && endDate) {
+        dateRangeStr = `${format(startDate, 'MMM dd, yyyy')} - ${format(endDate, 'MMM dd, yyyy')}`;
+      }
+      
+      // Generate role string if provided
+      const roleStr = role ? `Role: ${role}` : '';
+      
       // Generate an HTML report
       const reportHtml = `
         <!DOCTYPE html>
@@ -234,62 +246,34 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
                 margin: 20px 0;
               }
               th, td {
+                border: 1px solid #ddd;
                 padding: 12px;
                 text-align: left;
-                border-bottom: 1px solid #ddd;
               }
               th {
                 background-color: #f2f2f2;
                 font-weight: bold;
               }
-              tr:hover {
-                background-color: #f5f5f5;
+              tr:nth-child(even) {
+                background-color: #f9f9f9;
               }
-              .completion-rate {
-                font-weight: bold;
-                color: #27ae60;
+              .report-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 20px;
               }
-              .print-button {
-                background-color: #3498db;
-                color: white;
-                border: none;
-                padding: 10px 20px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 16px;
+              .chart-container {
                 margin: 20px 0;
-                cursor: pointer;
-                border-radius: 4px;
-              }
-              .print-container {
                 text-align: center;
-              }
-              .footer {
-                text-align: center;
-                margin-top: 30px;
-                font-size: 12px;
-                color: #7f8c8d;
-              }
-              @media print {
-                .print-container {
-                  display: none;
-                }
-                body {
-                  padding: 0;
-                  margin: 0;
-                }
               }
             </style>
           </head>
           <body>
-            <div class="print-container">
-              <button class="print-button" onclick="window.print()">Print Report</button>
-            </div>
-            
             <h1>Task Performance Report</h1>
             <div class="report-meta">
               <p>Period: ${periodLabel}</p>
+              ${dateRangeStr ? `<p>Date Range: ${dateRangeStr}</p>` : ''}
+              ${roleStr ? `<p>${roleStr}</p>` : ''}
               <p>Generated on: ${format(new Date(), 'MMMM dd, yyyy')}</p>
             </div>
             
@@ -302,7 +286,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
             </div>
             
             <div class="section">
-              <h2>Employee Performance</h2>
+              <h2>Task Overview</h2>
               <table>
                 <thead>
                   <tr>
@@ -439,7 +423,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -452,7 +436,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -464,7 +448,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -476,7 +460,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -488,7 +472,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -500,7 +484,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid size={6}>
+            <Grid item xs={6}>
               <FormControlLabel
                 control={
                   <Checkbox 

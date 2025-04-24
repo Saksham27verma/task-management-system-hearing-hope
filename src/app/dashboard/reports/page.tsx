@@ -543,342 +543,290 @@ export default function ReportsPage() {
   
   // Main render
   return (
-    <Container maxWidth="lg">
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <AssessmentOutlined color="primary" sx={{ fontSize: 32, mr: 2 }} />
-          <Typography variant="h5" component="h1">
-            Task Performance Reports
-          </Typography>
+    <Box sx={{ pb: 4 }} className="reports-container">
+      <Typography variant="h5" gutterBottom>
+        <AssessmentOutlined sx={{ mr: 1, verticalAlign: 'top' }} />
+        Reports & Analytics
+      </Typography>
+      
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+      
+      {/* Filter controls */}
+      <Paper 
+        sx={{ p: { xs: 1.5, sm: 3 }, mb: 3, borderRadius: 2 }} 
+        elevation={1}
+        className="report-filters"
+      >
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          alignItems: 'center', 
+          gap: { xs: 1, sm: 2 },
+          flexDirection: { xs: 'column', sm: 'row' } 
+        }}>
+          {/* Period selector */}
+          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+            <InputLabel id="period-label">Time Period</InputLabel>
+            <Select
+              labelId="period-label"
+              id="period-select"
+              value={period}
+              onChange={handlePeriodChange}
+              label="Time Period"
+              disabled={showDateRange}
+            >
+              <MenuItem value="week">This Week</MenuItem>
+              <MenuItem value="month">This Month</MenuItem>
+              <MenuItem value="quarter">This Quarter</MenuItem>
+              <MenuItem value="year">This Year</MenuItem>
+            </Select>
+          </FormControl>
+          
+          {/* Role filter */}
+          {user?.role === 'SUPER_ADMIN' && (
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+              <InputLabel id="role-label">User Role</InputLabel>
+              <Select
+                labelId="role-label"
+                id="role-select"
+                value={roleFilter}
+                onChange={handleRoleFilterChange}
+                label="User Role"
+              >
+                <MenuItem value="">All Roles</MenuItem>
+                <MenuItem value="MANAGER">Managers</MenuItem>
+                <MenuItem value="EMPLOYEE">Employees</MenuItem>
+              </Select>
+            </FormControl>
+          )}
+          
+          {/* Date range toggle */}
+          <Tooltip title="Toggle custom date range">
+            <Button
+              variant={showDateRange ? "contained" : "outlined"}
+              color="primary"
+              startIcon={<CalendarTodayIcon />}
+              onClick={() => setShowDateRange(!showDateRange)}
+              sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+            >
+              {showDateRange ? "Using Custom Dates" : "Custom Date Range"}
+            </Button>
+          </Tooltip>
+          
+          {/* Filter toggle */}
+          <Tooltip title="Toggle advanced filters">
+            <Button
+              variant={showFilters ? "contained" : "outlined"}
+              color="secondary"
+              startIcon={<TuneIcon />}
+              onClick={() => setShowFilters(!showFilters)}
+              sx={{ minWidth: { xs: '100%', sm: 'auto' } }}
+            >
+              {showFilters ? "Using Filters" : "Advanced Filters"}
+            </Button>
+          </Tooltip>
+          
+          {/* Apply filters button */}
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={fetchReports}
+            disabled={isLoading}
+            startIcon={<SearchIcon />}
+            sx={{ ml: { xs: 0, sm: 'auto' }, minWidth: { xs: '100%', sm: 'auto' } }}
+          >
+            {isLoading ? "Loading..." : "Apply Filters"}
+          </Button>
         </Box>
         
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-            <FormControl sx={{ minWidth: 180 }} size="small">
-              <InputLabel id="period-select-label">Report Period</InputLabel>
+        {/* Custom date range selector */}
+        {showDateRange && (
+          <Box 
+            sx={{ 
+              mt: 2, 
+              display: 'flex', 
+              flexWrap: 'wrap',
+              gap: 2,
+              flexDirection: { xs: 'column', sm: 'row' }
+            }}
+          >
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Start Date"
+                value={startDate}
+                onChange={(newValue) => setStartDate(newValue)}
+                slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                sx={{ flex: 1 }}
+              />
+              <DatePicker
+                label="End Date"
+                value={endDate}
+                onChange={(newValue) => setEndDate(newValue)}
+                slotProps={{ textField: { fullWidth: true, size: "small" } }}
+                sx={{ flex: 1 }}
+              />
+            </LocalizationProvider>
+            
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => {
+                setStartDate(null);
+                setEndDate(null);
+              }}
+              startIcon={<ClearIcon />}
+              sx={{ minHeight: 40 }}
+            >
+              Clear Dates
+            </Button>
+          </Box>
+        )}
+        
+        {/* Advanced filters */}
+        {showFilters && (
+          <Box sx={{ mt: 2 }}>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel id="user-label">Filter by User</InputLabel>
               <Select
-                labelId="period-select-label"
-                id="period-select"
-                value={period}
-                label="Report Period"
-                onChange={handlePeriodChange}
+                labelId="user-label"
+                id="user-select"
+                value={selectedUser}
+                onChange={(e) => setSelectedUser(e.target.value)}
+                label="Filter by User"
               >
-                <MenuItem value="week">Last 7 Days</MenuItem>
-                <MenuItem value="month">This Month</MenuItem>
-                <MenuItem value="lastMonth">Last Month</MenuItem>
-                <MenuItem value="quarter">Last 90 Days</MenuItem>
-                <MenuItem value="year">Last 365 Days</MenuItem>
+                <MenuItem value="">All Users</MenuItem>
+                {users.map((user) => (
+                  <MenuItem key={user._id} value={user._id}>
+                    {user.name} ({user.role})
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             
-            {/* Role filter (only for Super Admins) */}
-            {user?.role === 'SUPER_ADMIN' && (
-              <FormControl sx={{ minWidth: 180 }} size="small">
-                <InputLabel id="role-filter-label">Role Filter</InputLabel>
-                <Select
-                  labelId="role-filter-label"
-                  id="role-filter"
-                  value={roleFilter}
-                  label="Role Filter"
-                  onChange={handleRoleFilterChange}
-                >
-                  <MenuItem value="">All Users</MenuItem>
-                  <MenuItem value="MANAGER">Managers Only</MenuItem>
-                  <MenuItem value="EMPLOYEE">Employees Only</MenuItem>
-                </Select>
-              </FormControl>
-            )}
-            
-            {reportData && (
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {formatDateString(reportData.dateRange.from)} to {formatDateString(reportData.dateRange.to)}
-              </Typography>
-            )}
-            
-            <Tooltip title="Toggle Date Range Filter">
-              <IconButton 
-                color={showDateRange ? "primary" : "default"}
-                onClick={() => {
-                  setShowDateRange(!showDateRange);
-                  if (!showDateRange) {
-                    setPeriod('custom');
-                  } else {
-                    setStartDate(null);
-                    setEndDate(null);
-                    setPeriod('month');
-                  }
-                }}
-                size="small"
-              >
-                <CalendarTodayIcon />
-              </IconButton>
-            </Tooltip>
-            
-            <Tooltip title="Toggle Advanced Filters">
-              <IconButton 
-                color={showFilters ? "primary" : "default"}
-                onClick={() => setShowFilters(!showFilters)}
-                size="small"
-              >
-                <TuneIcon />
-              </IconButton>
-            </Tooltip>
-            
-            {showDateRange && (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="Start Date"
-                    value={startDate}
-                    onChange={(newValue) => setStartDate(newValue)}
-                    slotProps={{ textField: { size: 'small' } }}
-                  />
-                  <Typography variant="body2" sx={{ mx: 0.5 }}>to</Typography>
-                  <DatePicker
-                    label="End Date"
-                    value={endDate}
-                    onChange={(newValue) => setEndDate(newValue)}
-                    slotProps={{ textField: { size: 'small' } }}
-                  />
-                </LocalizationProvider>
-              </Box>
-            )}
-            
-            {showFilters && (
-              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                <FormControl sx={{ minWidth: 200 }} size="small">
-                  <InputLabel id="user-select-label">Select User</InputLabel>
-                  <Select
-                    labelId="user-select-label"
-                    id="user-select"
-                    value={selectedUser}
-                    label="Select User"
-                    onChange={(event) => setSelectedUser(event.target.value)}
-                  >
-                    <MenuItem value="">All Users</MenuItem>
-                    {users.map(user => (
-                      <MenuItem key={user._id} value={user._id}>
-                        {user.name} ({user.role})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<SearchIcon />}
-                  onClick={fetchReports}
-                >
-                  Apply Filters
-                </Button>
-                
-                <Button
-                  variant="outlined"
-                  size="small"
-                  color="error"
-                  startIcon={<ClearIcon />}
-                  onClick={() => {
-                    setSelectedUser('');
-                    setStartDate(null);
-                    setEndDate(null);
-                    setPeriod('month');
-                    setRoleFilter('');
-                    setShowDateRange(false);
-                    setShowFilters(false);
-                    
-                    setTimeout(() => {
-                      fetchReports();
-                    }, 0);
-                  }}
-                >
-                  Clear All
-                </Button>
-              </Box>
-            )}
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => {
+                setSelectedUser('');
+                setRoleFilter('');
+              }}
+              startIcon={<ClearIcon />}
+              fullWidth
+            >
+              Clear All Filters
+            </Button>
           </Box>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            {reportData && (
-              <ExportReports reportData={reportData} period={period} />
-            )}
-            
-            <Tooltip title="Refresh Data">
-              <Button
-                variant="contained"
-                size="small"
-                onClick={fetchReports}
-                disabled={isLoading}
-              >
-                Refresh
-              </Button>
-            </Tooltip>
-          </Box>
-        </Box>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : reportData ? (
-          <>
-            {renderSummaryCards()}
-            
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mt: 4, mb: 3 }}>
-              <Tabs value={viewMode} onChange={handleViewModeChange} aria-label="report view tabs">
-                <Tab 
-                  icon={<PieChartOutlined />} 
-                  iconPosition="start" 
-                  label="Summary" 
-                />
-                <Tab 
-                  icon={<BarChartOutlined />} 
-                  iconPosition="start" 
-                  label="Performance Cards" 
-                />
-                <Tab 
-                  icon={<TableChartOutlined />} 
-                  iconPosition="start" 
-                  label="Table View" 
-                />
-                <Tab 
-                  icon={<TrendingUpOutlined />} 
-                  iconPosition="start" 
-                  label="Advanced Analytics" 
-                />
-              </Tabs>
-            </Box>
-            
-            <Box>
-              {viewMode === 0 && (
-                <Box>
-                  <Typography variant="h6" sx={{ mb: 2 }}>Performance Overview</Typography>
-                  <Grid container spacing={3}>
-                    <Grid size={{ xs: 12, md: 7 }}>
-                      <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                          Top Performers
-                        </Typography>
-                        <List>
-                          {reportData.reports
-                            .sort((a, b) => b.completionRate - a.completionRate)
-                            .slice(0, 5)
-                            .map(report => (
-                              <ListItem key={report.employeeId} divider sx={{ py: 1 }}>
-                                <ListItemAvatar>
-                                  <Avatar sx={{
-                                    bgcolor: report.employeeRole === 'MANAGER' ? 'secondary.main' : 'primary.main'
-                                  }}>
-                                    {report.employeeName.charAt(0)}
-                                  </Avatar>
-                                </ListItemAvatar>
-                                <ListItemText 
-                                  primary={
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                      <Typography variant="body1" sx={{ mr: 1 }}>
-                                        {report.employeeName}
-                                      </Typography>
-                                      <Chip 
-                                        size="small" 
-                                        label={report.employeeRole === 'MANAGER' ? 'Manager' : 'Employee'} 
-                                        color={report.employeeRole === 'MANAGER' ? 'secondary' : 'primary'}
-                                        sx={{ height: 20 }}
-                                      />
-                                    </Box>
-                                  }
-                                  secondary={`${report.employeePosition} • ${report.completedTasks} tasks completed`}
-                                />
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                    {report.completionRate}%
-                                  </Typography>
-                                  <CheckCircleOutline 
-                                    color="success" 
-                                    fontSize="small" 
-                                    sx={{ ml: 0.5 }} 
-                                  />
-                                </Box>
-                              </ListItem>
-                            ))}
-                        </List>
-                      </Paper>
-                    </Grid>
-                    
-                    <Grid size={{ xs: 12, md: 5 }}>
-                      <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                          Task Distribution
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Daily Tasks
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={(reportData.reports.reduce((sum, r) => sum + r.tasksByType.daily, 0) / 
-                                reportData.summary.totalTasks) * 100} 
-                              color="primary"
-                              sx={{ height: 10, borderRadius: 5, mb: 1 }}
-                            />
-                          </Box>
-                          
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Weekly Tasks
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={(reportData.reports.reduce((sum, r) => sum + r.tasksByType.weekly, 0) / 
-                                reportData.summary.totalTasks) * 100} 
-                              color="secondary"
-                              sx={{ height: 10, borderRadius: 5, mb: 1 }}
-                            />
-                          </Box>
-                          
-                          <Box>
-                            <Typography variant="body2" color="text.secondary">
-                              Monthly Tasks
-                            </Typography>
-                            <LinearProgress 
-                              variant="determinate" 
-                              value={(reportData.reports.reduce((sum, r) => sum + r.tasksByType.monthly, 0) / 
-                                reportData.summary.totalTasks) * 100} 
-                              color="warning"
-                              sx={{ height: 10, borderRadius: 5, mb: 1 }}
-                            />
-                          </Box>
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  </Grid>
-                </Box>
-              )}
-              
-              {viewMode === 1 && renderEmployeeCards()}
-              {viewMode === 2 && renderTable()}
-              
-              {viewMode === 3 && (
-                <AnalyticsDashboard 
-                  period={period} 
-                  role={roleFilter || 'all'} 
-                  onRefresh={() => fetchReports()}
-                />
-              )}
-            </Box>
-          </>
-        ) : (
-          <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
-            No report data available
-          </Typography>
         )}
       </Paper>
-    </Container>
+      
+      {/* Report view tabs */}
+      <Tabs
+        value={viewMode}
+        onChange={handleViewModeChange}
+        indicatorColor="primary"
+        textColor="primary"
+        variant="scrollable"
+        scrollButtons
+        allowScrollButtonsMobile
+        sx={{ 
+          mb: 2,
+          borderBottom: 1,
+          borderColor: 'divider',
+          ".MuiTab-root": {
+            minHeight: {xs: 40, sm: 48},
+            py: 0,
+            fontSize: {xs: "0.8rem", sm: "0.875rem"}
+          }
+        }}
+      >
+        <Tab 
+          icon={<BarChartOutlined fontSize="small" />} 
+          iconPosition="start" 
+          label="Summary" 
+          sx={{ flexShrink: 0 }}
+        />
+        <Tab 
+          icon={<PersonOutline fontSize="small" />} 
+          iconPosition="start" 
+          label="User Reports" 
+          sx={{ flexShrink: 0 }}
+        />
+        <Tab 
+          icon={<TableChartOutlined fontSize="small" />} 
+          iconPosition="start" 
+          label="Data Table" 
+          sx={{ flexShrink: 0 }}
+        />
+        <Tab 
+          icon={<PieChartOutlined fontSize="small" />} 
+          iconPosition="start" 
+          label="Analytics" 
+          sx={{ flexShrink: 0 }}
+        />
+        <Tab 
+          icon={<CloudDownloadOutlined fontSize="small" />} 
+          iconPosition="start" 
+          label="Export" 
+          sx={{ flexShrink: 0 }}
+        />
+      </Tabs>
+      
+      {/* Loading indicator */}
+      {isLoading && (
+        <Box sx={{ width: '100%', mt: 2 }}>
+          <LinearProgress />
+        </Box>
+      )}
+      
+      {/* Content based on selected tab */}
+      <Box className="analytics-section" sx={{ display: viewMode === 0 ? 'block' : 'none' }}>
+        {!isLoading && reportData && renderSummaryCards()}
+      </Box>
+      
+      <Box className="analytics-section" sx={{ display: viewMode === 1 ? 'block' : 'none' }}>
+        {!isLoading && reportData && renderEmployeeCards()}
+      </Box>
+      
+      <Box className="analytics-section" sx={{ display: viewMode === 2 ? 'block' : 'none', overflow: 'auto' }}>
+        {!isLoading && reportData && renderTable()}
+      </Box>
+      
+      <Box className="analytics-section" sx={{ display: viewMode === 3 ? 'block' : 'none' }}>
+        {!isLoading && reportData && (
+          <AnalyticsDashboard
+            period={period}
+            role={roleFilter}
+            onRefresh={fetchReports}
+          />
+        )}
+      </Box>
+      
+      <Box className="analytics-section" sx={{ display: viewMode === 4 ? 'block' : 'none' }}>
+        {!isLoading && reportData && (
+          <ExportReports
+            period={period}
+            role={roleFilter}
+            startDate={startDate}
+            endDate={endDate}
+          />
+        )}
+      </Box>
+      
+      {/* No data message */}
+      {!isLoading && !reportData && !error && (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Typography variant="h6" color="textSecondary">
+            No report data available
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Try adjusting your filters or selecting a different time period.
+          </Typography>
+        </Paper>
+      )}
+    </Box>
   );
 } 

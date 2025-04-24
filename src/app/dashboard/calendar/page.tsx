@@ -901,34 +901,41 @@ export default function CalendarPage() {
         </Typography>
       </Box>
       
-      <Paper elevation={2} sx={{ p: 3, mb: 4 }}>
-        {/* Calendar header */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 3,
-          flexWrap: 'wrap',
-          gap: 2
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <EventIcon color="primary" sx={{ mr: 1 }} />
-            <Typography variant="h5">
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+      
+      {/* Calendar header with navigation and view controls */}
+      <Paper 
+        elevation={1} 
+        sx={{ p: { xs: 1, sm: 2 }, mb: 3, borderRadius: 2 }}
+        className="calendar-header"
+      >
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            gap: { xs: 1, sm: 2 },
+            alignItems: 'center',
+            justifyContent: { xs: 'center', sm: 'space-between' },
+            width: '100%'
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', sm: 'flex-start' }, mb: { xs: 1, sm: 0 } }}>
+            <Typography variant="h5" sx={{ display: { xs: 'none', sm: 'block' } }}>
+              <CalendarMonthIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
               {formatHeaderDate()}
             </Typography>
-            
-            {/* Google Calendar indicator */}
-            {googleCalendarConnected && (
-              <Tooltip title="Connected to Google Calendar">
-                <GoogleIcon
-                  sx={{ ml: 1, color: '#4285F4', fontSize: '1.2rem' }}
-                />
-              </Tooltip>
-            )}
+            <Typography variant="h6" sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <CalendarMonthIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+              {formatHeaderDate()}
+            </Typography>
           </Box>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <ButtonGroup variant="outlined" size="small">
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+            <ButtonGroup size="small" aria-label="calendar navigation" sx={{ flexShrink: 0 }}>
               <Button onClick={navigatePrevious}>
                 <PrevIcon fontSize="small" />
               </Button>
@@ -938,74 +945,105 @@ export default function CalendarPage() {
               </Button>
             </ButtonGroup>
             
-            <ButtonGroup variant="outlined" size="small">
+            <ButtonGroup size="small" aria-label="view options" className="calendar-view-buttons" sx={{ flexShrink: 0 }}>
               <Button 
                 variant={view === 'month' ? 'contained' : 'outlined'} 
                 onClick={() => handleViewChange('month')}
+                startIcon={<ViewMonthIcon />}
               >
-                <ViewMonthIcon fontSize="small" sx={{ mr: 0.5 }} />
                 Month
               </Button>
               <Button 
                 variant={view === 'week' ? 'contained' : 'outlined'} 
                 onClick={() => handleViewChange('week')}
+                startIcon={<ViewWeekIcon />}
               >
-                <ViewWeekIcon fontSize="small" sx={{ mr: 0.5 }} />
                 Week
               </Button>
               <Button 
                 variant={view === 'agenda' ? 'contained' : 'outlined'} 
                 onClick={() => handleViewChange('agenda')}
+                startIcon={<ViewDayIcon />}
               >
-                <ViewDayIcon fontSize="small" sx={{ mr: 0.5 }} />
                 Agenda
               </Button>
             </ButtonGroup>
-            
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleCreateTask}
-            >
-              Add Task
-            </Button>
-            
-            {/* Google Calendar Integration Button */}
-            <Tooltip title={googleCalendarConnected ? "Manage Google Calendar Connection" : "Connect to Google Calendar"}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={<GoogleIcon />}
-                onClick={handleGoogleCalendarConnect}
-                size="small"
-              >
-                {googleCalendarConnected ? "Manage Google Calendar" : "Connect Google Calendar"}
-              </Button>
-            </Tooltip>
           </Box>
         </Box>
+      </Paper>
+      
+      {/* Buttons for creating tasks and connecting to Google Calendar */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 2,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 }
+        }}
+        className="google-calendar-section"
+      >
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<EventIcon />}
+          onClick={handleCreateTask}
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
+        >
+          Add Task
+        </Button>
         
-        {/* Error message */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        {/* Loading indicator */}
-        {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress />
+        {googleCalendarConnected ? (
+          <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<GoogleIcon />}
+              onClick={() => setOpenGoogleCalendarDialog(true)}
+              sx={{ flex: 1 }}
+            >
+              Google Calendar Settings
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={handleManualSync}
+              sx={{ minWidth: 0, p: 1 }}
+            >
+              <Tooltip title="Sync Now">
+                <IconButton size="small" color="secondary">
+                  <CalendarMonthIcon />
+                </IconButton>
+              </Tooltip>
+            </Button>
           </Box>
         ) : (
-          // Calendar views
-          <Box>
-            {view === 'month' && renderMonthView()}
-            {view === 'week' && renderWeekView()}
-            {view === 'agenda' && renderAgendaView()}
-          </Box>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<GoogleIcon />}
+            onClick={handleConnectToGoogle}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            Connect to Google Calendar
+          </Button>
         )}
-      </Paper>
+      </Box>
+      
+      {/* Loading indicator */}
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        // Calendar views
+        <Box>
+          {view === 'month' && renderMonthView()}
+          {view === 'week' && renderWeekView()}
+          {view === 'agenda' && renderAgendaView()}
+        </Box>
+      )}
       
       {/* Tasks for selected day dialog */}
       <Dialog

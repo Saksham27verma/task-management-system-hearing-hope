@@ -274,6 +274,69 @@ table {
     height: 100%;
     overflow-y: auto;
   }
+
+  /* Ensure calendar buttons are visible */
+  .calendar-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    justify-content: center;
+  }
+
+  .calendar-header button,
+  .calendar-header .MuiButtonGroup-root {
+    margin: 4px !important;
+    flex-shrink: 0;
+  }
+
+  /* Fix for calendar view selection */
+  .calendar-view-buttons {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  
+  /* Ensure Google Calendar connect button is visible */
+  .google-calendar-section {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Fix for reports section */
+  .reports-container {
+    overflow-y: auto !important;
+    padding-bottom: 80px !important;
+  }
+  
+  /* Ensure Analytics section scrolls properly */
+  .analytics-section {
+    overflow-y: auto !important;
+    max-height: none !important;
+  }
+  
+  /* Make report filter controls more mobile-friendly */
+  .report-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .report-filters .MuiFormControl-root,
+  .report-filters .MuiButton-root {
+    margin: 4px 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Fix for tab panel content scrolling */
+  .MuiTabPanel-root {
+    padding: 16px 8px !important;
+    overflow-y: auto !important;
+  }
 }
 
 /* Prevent text selection on interactive elements */
@@ -303,4 +366,10 @@ a, button, .MuiButton-root, .MuiIconButton-root,
 [style*="min-width="] {
   max-width: 100% !important;
   box-sizing: border-box !important;
+}
+
+/* Fix for reports page scrolling and layout */
+.MuiTabs-root {
+  max-width: 100%;
+  overflow-x: auto;
 } 
