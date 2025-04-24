@@ -74,9 +74,9 @@ const TaskStatus = {
 
 // Task type enum for displaying in UI
 const TaskTypes = {
-  DAILY: { text: 'Daily' },
-  WEEKLY: { text: 'Weekly' },
-  MONTHLY: { text: 'Monthly' },
+  DAILY: { text: 'Daily', color: 'default' },
+  WEEKLY: { text: 'Weekly', color: 'default' },
+  MONTHLY: { text: 'Monthly', color: 'default' },
 } as const;
 
 export default function TaskList() {
@@ -459,13 +459,13 @@ export default function TaskList() {
         className="task-filters"
       >
         <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <TextField
               select
               fullWidth
               size="small"
               value={statusFilter}
-              onChange={handleStatusFilterChange}
+              onChange={(e) => handleStatusFilterChange(e as SelectChangeEvent)}
               label="Status"
               InputProps={{
                 startAdornment: (
@@ -483,13 +483,13 @@ export default function TaskList() {
             </TextField>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <TextField
               select
               fullWidth
               size="small"
               value={typeFilter}
-              onChange={handleTypeFilterChange}
+              onChange={(e) => handleTypeFilterChange(e as SelectChangeEvent)}
               label="Task Type"
               InputProps={{
                 startAdornment: (
@@ -510,7 +510,7 @@ export default function TaskList() {
             </TextField>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button 
                 startIcon={<AddIcon />} 
