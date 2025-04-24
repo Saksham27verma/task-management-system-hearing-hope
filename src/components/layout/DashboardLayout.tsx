@@ -19,6 +19,7 @@ import {
   MenuItem,
   Tooltip,
   useTheme,
+  alpha,
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -52,7 +53,11 @@ const WalkthroughTour = dynamic(
 );
 
 // Responsive drawer width
-const getDrawerWidth = (isMobile: boolean) => isMobile ? 240 : 280;
+const getDrawerWidth = (isMobile: boolean, isSmallMobile: boolean) => {
+  if (isSmallMobile) return 220;
+  if (isMobile) return 240;
+  return 280;
+};
 
 interface NavItem {
   label: string;
@@ -72,7 +77,62 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, logout, isAuthenticated } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
-  const drawerWidth = getDrawerWidth(isMobile);
+  const drawerWidth = getDrawerWidth(isMobile, isSmallMobile);
+  
+  // Inject additional CSS for mobile fixes
+  useEffect(() => {
+    if (isMobile) {
+      // Create a style element
+      const mobileFixStyles = document.createElement('style');
+      mobileFixStyles.id = 'mobile-fix-styles';
+      mobileFixStyles.innerHTML = `
+        @media (max-width: 768px) {
+          /* Ensure inputs don't overflow */
+          .MuiTextField-root, .MuiFormControl-root {
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          
+          /* Fix for task list filters */
+          .MuiInputBase-root {
+            min-height: 40px !important;
+            font-size: 0.875rem !important;
+            padding: 0 8px !important;
+          }
+          
+          /* Task filter improvements */
+          .task-filters .MuiGrid-item {
+            padding: 4px !important;
+          }
+          
+          /* Task table improvements */
+          .MuiTableContainer-root {
+            overflow-x: auto !important;
+            width: 100% !important;
+            padding: 0 !important;
+          }
+          
+          /* Fix for select dropdown */
+          .MuiSelect-select {
+            padding-right: 24px !important;
+          }
+        }
+      `;
+      
+      // Check if it already exists
+      if (!document.getElementById('mobile-fix-styles')) {
+        document.head.appendChild(mobileFixStyles);
+      }
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      const styleEl = document.getElementById('mobile-fix-styles');
+      if (styleEl) {
+        document.head.removeChild(styleEl);
+      }
+    };
+  }, [isMobile]);
   
   // Close drawer when navigating on mobile
   useEffect(() => {
@@ -249,7 +309,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Navigation items */}
       <List sx={{ py: 0 }}>
         {filteredNavItems.map((item) => (
-          <Permission key={item.href} permissions={item.permissions} role={item.roles}>
+          <Permission key={item.href} permissions={item.permissions} roles={item.roles}>
             <ListItem disablePadding>
               <ListItemButton
                 component={Link}
@@ -307,13 +367,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           boxShadow: 1,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between', height: { xs: 56, sm: 64 }, px: { xs: 2, sm: 3 } }}>
+        <Toolbar sx={{ 
+          justifyContent: 'space-between', 
+          height: { xs: 56, sm: 64 }, 
+          px: { xs: 1, sm: 3 },
+          minHeight: { xs: '56px', sm: '64px' }
+        }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { md: 'none' } }}
+            sx={{ mr: 1, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
@@ -342,7 +407,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             })()}
           </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 } }}>
             {/* Theme toggle */}
             <Tooltip title={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}>
               <IconButton color="inherit" onClick={toggleTheme} size={isMobile ? "small" : "medium"}>
@@ -464,7 +529,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Toolbar />
         <Box 
           sx={{ 
-            p: { xs: 2, sm: 3 }, 
+            p: { xs: 1, sm: 2, md: 3 }, 
             flexGrow: 1,
             maxWidth: '100%',
             width: '100%',

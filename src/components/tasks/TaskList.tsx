@@ -36,6 +36,8 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
+  Grid,
+  useMediaQuery,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -53,6 +55,9 @@ import {
   Delete as BatchDeleteIcon,
   CheckCircleOutline as BatchCompleteIcon,
   Update as BatchUpdateIcon,
+  PriorityHigh as PriorityHighIcon,
+  Category as CategoryIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -435,7 +440,7 @@ export default function TaskList() {
   };
   
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {/* Error alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -443,319 +448,234 @@ export default function TaskList() {
         </Alert>
       )}
       
-      {/* Filter and action toolbar */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
-          {/* Search field */}
-          <TextField
-            placeholder="Search tasks..."
-            variant="outlined"
-            size="small"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              endAdornment: searchQuery && (
-                <InputAdornment position="end">
-                  <IconButton
-                    size="small"
-                    aria-label="clear search"
-                    onClick={handleClearSearch}
-                  >
-                    <ClearIcon fontSize="small" />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ flexGrow: 1, minWidth: '200px' }}
-          />
-          
-          {/* Status filter */}
-          <FormControl size="small" sx={{ minWidth: '180px' }}>
-            <InputLabel 
-              id="status-filter-label"
-              shrink={true}
-              sx={{
-                backgroundColor: 'white',
-                px: 0.5,
-                transform: 'translate(14px, -9px) scale(0.75)',
-              }}
-            >
-              Status
-            </InputLabel>
-            <Select
-              labelId="status-filter-label"
-              id="status-filter"
+      {/* Filters section */}
+      <Paper 
+        sx={{ 
+          p: { xs: 1, sm: 2 }, 
+          mb: 2, 
+          borderRadius: 2,
+          overflow: 'hidden'
+        }}
+        className="task-filters"
+      >
+        <Grid container spacing={{ xs: 1, sm: 2 }} alignItems="center">
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              select
+              fullWidth
+              size="small"
               value={statusFilter}
               onChange={handleStatusFilterChange}
-              displayEmpty
-              notched
-              sx={{
-                '.MuiSelect-select': {
-                  paddingTop: '8px',
-                  paddingBottom: '8px',
-                },
-                '.MuiOutlinedInput-notchedOutline': {
-                  borderColor: theme.palette.grey[400],
-                },
-              }}
-              renderValue={(selected) => {
-                if (!selected) return <span style={{opacity: 0.7}}>Any</span>;
-                return TaskStatus[selected as keyof typeof TaskStatus]?.text || selected;
-              }}
-              MenuProps={{
-                anchorOrigin: {
-                  vertical: 'bottom',
-                  horizontal: 'left',
-                },
-                transformOrigin: {
-                  vertical: 'top',
-                  horizontal: 'left',
-                },
+              label="Status"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <FilterListIcon fontSize="small" />
+                  </InputAdornment>
+                ),
               }}
             >
-              <MenuItem value="">Any</MenuItem>
-              {Object.entries(TaskStatus).map(([value, { text }]) => (
-                <MenuItem key={value} value={value}>
-                  {text}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <MenuItem value="all">All Statuses</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="in_progress">In Progress</MenuItem>
+              <MenuItem value="completed">Completed</MenuItem>
+              <MenuItem value="delayed">Delayed</MenuItem>
+            </TextField>
+          </Grid>
           
-          {/* Type filter */}
-          <FormControl size="small" sx={{ minWidth: '180px' }}>
-            <InputLabel 
-              id="type-filter-label"
-              shrink={true}
-              sx={{
-                backgroundColor: 'white',
-                px: 0.5,
-                transform: 'translate(14px, -9px) scale(0.75)',
-              }}
-            >
-              Type
-            </InputLabel>
-            <Select
-              labelId="type-filter-label"
-              id="type-filter"
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              select
+              fullWidth
+              size="small"
               value={typeFilter}
               onChange={handleTypeFilterChange}
-              displayEmpty
-              notched
-              sx={{
-                '.MuiSelect-select': {
-                  paddingTop: '8px',
-                  paddingBottom: '8px',
-                },
-                '.MuiOutlinedInput-notchedOutline': {
-                  borderColor: theme.palette.grey[400],
-                },
-              }}
-              renderValue={(selected) => {
-                if (!selected) return <span style={{opacity: 0.7}}>Any</span>;
-                return TaskTypes[selected as keyof typeof TaskTypes]?.text || selected;
-              }}
-              MenuProps={{
-                anchorOrigin: {
-                  vertical: 'bottom',
-                  horizontal: 'left',
-                },
-                transformOrigin: {
-                  vertical: 'top',
-                  horizontal: 'left',
-                },
+              label="Task Type"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CategoryIcon fontSize="small" />
+                  </InputAdornment>
+                ),
               }}
             >
-              <MenuItem value="">Any</MenuItem>
-              {Object.entries(TaskTypes).map(([value, { text }]) => (
-                <MenuItem key={value} value={value}>
-                  {text}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+              <MenuItem value="all">All Types</MenuItem>
+              <MenuItem value="documentation">Documentation</MenuItem>
+              <MenuItem value="research">Research</MenuItem>
+              <MenuItem value="design">Design</MenuItem>
+              <MenuItem value="development">Development</MenuItem>
+              <MenuItem value="testing">Testing</MenuItem>
+              <MenuItem value="deployment">Deployment</MenuItem>
+              <MenuItem value="maintenance">Maintenance</MenuItem>
+            </TextField>
+          </Grid>
           
-          {/* Filter reset button */}
-          <Tooltip title="Reset Filters">
-            <IconButton
-              onClick={handleResetFilters}
-              size="small"
-              sx={{ ml: 'auto' }}
-              disabled={!searchQuery && !statusFilter && !typeFilter}
-            >
-              <FilterListIcon />
-            </IconButton>
-          </Tooltip>
-          
-          {/* Batch actions button - show only when tasks are selected */}
-          {hasSelectedTasks && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<BatchActionIcon />}
-              onClick={openBatchMenu}
-              sx={{ ml: 2 }}
-            >
-              Batch Actions ({selectedTasks.length})
-            </Button>
-          )}
-          
-          {/* Create task button - only for managers and admins */}
-          {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<AddIcon />}
-              onClick={handleCreateTask}
-            >
-              Create Task
-            </Button>
-          )}
-        </Box>
+          <Grid item xs={12} sm={6} md={3}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                startIcon={<AddIcon />} 
+                variant="contained" 
+                onClick={handleCreateTask}
+                sx={{ flexGrow: { xs: 1, md: 0 }, whiteSpace: 'nowrap' }}
+              >
+                New Task
+              </Button>
+              
+              <IconButton 
+                color="primary" 
+                onClick={() => {
+                  handleResetFilters();
+                  fetchTasks();
+                }}
+                sx={{ border: 1, borderColor: 'divider' }}
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Box>
+          </Grid>
+        </Grid>
       </Paper>
       
       {/* Task table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ bgcolor: theme.palette.grey[100] }}>
-              {/* Checkbox for selecting all tasks */}
-              <TableCell padding="checkbox">
-                <Checkbox
-                  indeterminate={selectedTasks.length > 0 && selectedTasks.length < tasks.length}
-                  checked={tasks.length > 0 && selectedTasks.length === tasks.length}
-                  onChange={handleSelectAllTasks}
-                  disabled={loading}
-                />
-              </TableCell>
-              <TableCell>Title</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Assigned To</TableCell>
-              <TableCell>Due Date</TableCell>
-              <TableCell align="right">Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                  <CircularProgress size={40} />
-                </TableCell>
-              </TableRow>
-            ) : tasks.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                  <Typography variant="body1" color="textSecondary">
-                    No tasks found.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              tasks.map((task) => (
-                <TableRow key={task._id} hover>
-                  {/* Checkbox for selecting individual task */}
-                  <TableCell padding="checkbox">
-                    <Checkbox
-                      checked={selectedTasks.includes(task._id)}
-                      onChange={() => handleSelectTask(task._id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
-                      {task.title}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {TaskTypes[task.taskType as keyof typeof TaskTypes]?.text || task.taskType}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={TaskStatus[task.status as keyof typeof TaskStatus]?.text || task.status}
-                      color={
-                        (TaskStatus[task.status as keyof typeof TaskStatus]?.color as any) ||
-                        'default'
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <PersonIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
-                      <Typography variant="body2">
-                        {task.assignedTo && task.assignedTo.name
-                          ? task.assignedTo.name
-                          : 'Unknown'}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <DateRangeIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
-                      <Typography variant="body2">
-                        {format(new Date(task.dueDate), 'MMM d, yyyy')}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Tooltip title="Update Progress">
-                        <IconButton
+      <Paper 
+        sx={{ 
+          borderRadius: 2, 
+          overflow: 'hidden',
+          width: '100%'
+        }}
+      >
+        {loading ? (
+          <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+            <CircularProgress />
+          </Box>
+        ) : tasks.length === 0 ? (
+          <Typography variant="body1" color="textSecondary" sx={{ p: 4, textAlign: 'center' }}>
+            No tasks found.
+          </Typography>
+        ) : (
+          <>
+            <TableContainer sx={{ maxHeight: { xs: 'calc(100vh - 300px)', sm: 'calc(100vh - 280px)' } }}>
+              <Table stickyHeader aria-label="tasks table" size={useMediaQuery('(max-width:600px)') ? 'small' : 'medium'}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Task</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'table-cell' } }}>Assigned To</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>Start Date</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Due Date</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'table-cell' } }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>Priority</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {tasks.map((task) => (
+                    <TableRow key={task._id} hover>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                          {task.title}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <PersonIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
+                          <Typography variant="body2">
+                            {task.assignedTo && task.assignedTo.name
+                              ? task.assignedTo.name
+                              : 'Unknown'}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <DateRangeIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
+                          <Typography variant="body2">
+                            {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={TaskStatus[task.status as keyof typeof TaskStatus]?.text || task.status}
+                          color={
+                            (TaskStatus[task.status as keyof typeof TaskStatus]?.color as any) ||
+                            'default'
+                          }
                           size="small"
-                          color="primary"
-                          onClick={() => handleUpdateTask(task._id)}
-                        >
-                          <UpdateIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
-                        <>
-                          <Tooltip title="Edit Task">
+                        />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                        <Chip
+                          label={TaskTypes[task.taskType as keyof typeof TaskTypes]?.text || task.taskType}
+                          color={
+                            (TaskTypes[task.taskType as keyof typeof TaskTypes]?.color as any) ||
+                            'default'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                        <Chip
+                          label={TaskStatus[task.status as keyof typeof TaskStatus]?.text || task.status}
+                          color={
+                            (TaskStatus[task.status as keyof typeof TaskStatus]?.color as any) ||
+                            'default'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                          <Tooltip title="Update Progress">
                             <IconButton
                               size="small"
-                              color="info"
-                              onClick={() => handleEditTask(task._id)}
+                              color="primary"
+                              onClick={() => handleUpdateTask(task._id)}
                             >
-                              <EditIcon fontSize="small" />
+                              <UpdateIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete Task">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick(task._id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-        
-        {/* Pagination */}
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25, 50]}
-          component="div"
-          count={totalTasks}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-        />
-      </TableContainer>
+                          {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
+                            <>
+                              <Tooltip title="Edit Task">
+                                <IconButton
+                                  size="small"
+                                  color="info"
+                                  onClick={() => handleEditTask(task._id)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete Task">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteClick(task._id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              component="div"
+              count={totalTasks}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+            />
+          </>
+        )}
+      </Paper>
 
       {/* Batch actions menu */}
       <Menu
