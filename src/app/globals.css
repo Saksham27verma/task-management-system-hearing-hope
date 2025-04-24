@@ -372,4 +372,40 @@ a, button, .MuiButton-root, .MuiIconButton-root,
 .MuiTabs-root {
   max-width: 100%;
   overflow-x: auto;
+}
+
+/* Dark mode fixes for calendar */
+[data-theme="dark"] .calendar-day {
+  background-color: #333 !important;
+  border-color: #555 !important;
+}
+
+[data-theme="dark"] .calendar-day:hover {
+  background-color: #444 !important;
+}
+
+[data-theme="dark"] .calendar-day-today {
+  background-color: rgba(58, 169, 134, 0.2) !important;
+}
+
+[data-theme="dark"] .calendar-day-today:hover {
+  background-color: rgba(58, 169, 134, 0.3) !important;
+}
+
+[data-theme="dark"] .calendar-header-cell {
+  background-color: #2a2a2a !important;
+  color: #ddd !important;
+}
+
+[data-theme="dark"] .calendar-task-item {
+  background-color: #2d2d2d !important;
+  border-color: #555 !important;
+}
+
+[data-theme="dark"] .calendar-day-number {
+  color: #eee !important;
+}
+
+[data-theme="dark"] .calendar-month-day-outside {
+  opacity: 0.5 !important;
 } 

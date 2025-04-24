@@ -415,6 +415,7 @@ export default function CalendarPage() {
           {daysOfWeek.map(day => (
             <Box 
               key={day} 
+              className="calendar-header-cell"
               sx={{ 
                 textAlign: 'center', 
                 py: 1.5, 
@@ -443,6 +444,7 @@ export default function CalendarPage() {
               return (
                 <Box 
                   key={day.toString()} 
+                  className={`calendar-day ${isToday(day) ? 'calendar-day-today' : ''} ${!isCurrentMonth ? 'calendar-month-day-outside' : ''}`}
                   sx={{ 
                     height: '130px',
                     width: '14.28%', // 1/7 of the container
@@ -467,6 +469,7 @@ export default function CalendarPage() {
                   }}>
                     <Typography 
                       variant="body2" 
+                      className="calendar-day-number"
                       sx={{ 
                         fontWeight: isToday(day) ? 'bold' : 'normal',
                         color: isToday(day) ? 'primary.main' : 'text.primary'
@@ -501,6 +504,7 @@ export default function CalendarPage() {
                       {tasksForDay.slice(0, 3).map((task, index) => (
                         <Box 
                           key={task._id} 
+                          className="calendar-task-item"
                           sx={{ 
                             display: 'flex',
                             alignItems: 'center',
