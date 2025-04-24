@@ -13,7 +13,9 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  minimumScale: 1,
+  userScalable: true,
   themeColor: '#EE6417',
 };
 
@@ -27,6 +29,7 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <meta name="format-detection" content="telephone=no" />
       </head>
       <body>
         <Providers>{children}</Providers>

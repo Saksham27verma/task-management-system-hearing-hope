@@ -11,6 +11,29 @@
   --secondary-color: #4fc3a1;
 }
 
+/* Fix for mobile responsiveness - prevent horizontal overflow */
+html, body {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Fix for content width issues on mobile */
+* {
+  box-sizing: border-box;
+}
+
+/* Fix for table overflow on mobile */
+table {
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
 /* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
   width: 10px;
@@ -76,7 +99,7 @@
   scrollbar-width: thin;
 }
 
-/* Make buttons more touch-friendly on mobile */
+/* Mobile optimizations */
 @media (max-width: 600px) {
   button, 
   .MuiButton-root, 
@@ -87,6 +110,46 @@
   
   .MuiInputBase-root {
     min-height: 46px;
+  }
+  
+  /* Ensure content stays within viewport */
+  .MuiContainer-root {
+    padding-left: 12px;
+    padding-right: 12px;
+    max-width: 100% !important;
+  }
+  
+  /* Make tables scroll horizontally on mobile */
+  .MuiTable-root {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  /* Adjust typography for better mobile reading */
+  .MuiTypography-h4 {
+    font-size: 1.5rem !important;
+  }
+  
+  .MuiTypography-h5 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Fix for form controls */
+  .MuiFormControl-root {
+    width: 100%;
+  }
+  
+  /* Fix Paper padding */
+  .MuiPaper-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  
+  /* Grid adjustment */
+  .MuiGrid-container {
+    margin: 0 !important;
+    width: 100% !important;
   }
 }
 
