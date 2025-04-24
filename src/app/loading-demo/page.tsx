@@ -85,7 +85,7 @@ export default function LoadingDemoPage() {
       </Typography>
       
       <Grid container spacing={3}>
-        <Grid item xs={12} md={7}>
+        <Grid size={{ xs: 12, md: 7 }} component="div">
           <Paper sx={{ p: 3, mb: 3 }}>
             <Typography variant="h5" gutterBottom>
               Customization Options
@@ -94,7 +94,7 @@ export default function LoadingDemoPage() {
             <Divider sx={{ mb: 3 }} />
             
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }} component="div">
                 <FormControl fullWidth>
                   <InputLabel>Animation Style</InputLabel>
                   <Select
@@ -111,7 +111,7 @@ export default function LoadingDemoPage() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }} component="div">
                 <FormControl fullWidth>
                   <InputLabel>Logo Background Effect</InputLabel>
                   <Select
@@ -126,7 +126,7 @@ export default function LoadingDemoPage() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }} component="div">
                 <FormControl fullWidth>
                   <InputLabel>Loading Message</InputLabel>
                   <Select
@@ -141,7 +141,7 @@ export default function LoadingDemoPage() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }} component="div">
                 <FormControl fullWidth>
                   <InputLabel>Progress Color</InputLabel>
                   <Select
@@ -175,7 +175,7 @@ export default function LoadingDemoPage() {
                 </FormControl>
               </Grid>
               
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }} component="div">
                 <Typography gutterBottom>Logo Size</Typography>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Typography>Small</Typography>
@@ -198,7 +198,7 @@ export default function LoadingDemoPage() {
                 </Stack>
               </Grid>
               
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }} component="div">
                 <FormControlLabel
                   control={
                     <Switch 
@@ -211,7 +211,7 @@ export default function LoadingDemoPage() {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }} component="div">
                 <FormControlLabel
                   control={
                     <Switch 
@@ -224,7 +224,7 @@ export default function LoadingDemoPage() {
                 />
               </Grid>
               
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }} component="div">
                 <FormControlLabel
                   control={
                     <Switch 
@@ -251,7 +251,7 @@ export default function LoadingDemoPage() {
           </Button>
         </Grid>
         
-        <Grid item xs={12} md={5}>
+        <Grid size={{ xs: 12, md: 5 }} component="div">
           <Paper sx={{ p: 3, height: '100%' }}>
             <Typography variant="h5" gutterBottom>
               Current Configuration

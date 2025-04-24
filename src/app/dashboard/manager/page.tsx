@@ -143,11 +143,11 @@ export default function ManagerDashboard() {
       
       <Grid container spacing={3}>
         {/* Quick Action Buttons */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Button 
                   variant="outlined" 
                   color="primary" 
@@ -159,7 +159,7 @@ export default function ManagerDashboard() {
                   Create Task
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Button 
                   variant="outlined" 
                   color="primary" 
@@ -171,7 +171,7 @@ export default function ManagerDashboard() {
                   Manage Tasks
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Button 
                   variant="outlined" 
                   color="primary" 
@@ -183,7 +183,7 @@ export default function ManagerDashboard() {
                   View Notices
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Button 
                   variant="outlined" 
                   color="primary" 
@@ -195,7 +195,7 @@ export default function ManagerDashboard() {
                   View Calendar
                 </Button>
               </Grid>
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <Button 
                   variant="outlined" 
                   color="primary" 
@@ -212,7 +212,7 @@ export default function ManagerDashboard() {
         </Grid>
         
         {/* Recent Tasks Section */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">Recent Tasks</Typography>
@@ -246,8 +246,8 @@ export default function ManagerDashboard() {
                       '&:hover': {
                         bgcolor: 'action.hover',
                       },
+                      cursor: 'pointer'
                     }}
-                    button
                     onClick={() => router.push(`/dashboard/tasks/${task._id}`)}
                   >
                     <ListItemIcon>
@@ -280,7 +280,7 @@ export default function ManagerDashboard() {
         </Grid>
         
         {/* Task Summary Card */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Task Summary</Typography>
             <Divider sx={{ mb: 2 }} />

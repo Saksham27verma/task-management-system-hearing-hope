@@ -475,15 +475,50 @@ export default function TaskList() {
           />
           
           {/* Status filter */}
-          <FormControl size="small" sx={{ minWidth: '150px' }}>
-            <InputLabel>Status</InputLabel>
+          <FormControl size="small" sx={{ minWidth: '180px' }}>
+            <InputLabel 
+              id="status-filter-label"
+              shrink={true}
+              sx={{
+                backgroundColor: 'white',
+                px: 0.5,
+                transform: 'translate(14px, -9px) scale(0.75)',
+              }}
+            >
+              Status
+            </InputLabel>
             <Select
+              labelId="status-filter-label"
+              id="status-filter"
               value={statusFilter}
               onChange={handleStatusFilterChange}
-              label="Status"
               displayEmpty
+              notched
+              sx={{
+                '.MuiSelect-select': {
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                },
+                '.MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.grey[400],
+                },
+              }}
+              renderValue={(selected) => {
+                if (!selected) return <span style={{opacity: 0.7}}>Any</span>;
+                return TaskStatus[selected as keyof typeof TaskStatus]?.text || selected;
+              }}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+              }}
             >
-              <MenuItem value="">All Statuses</MenuItem>
+              <MenuItem value="">Any</MenuItem>
               {Object.entries(TaskStatus).map(([value, { text }]) => (
                 <MenuItem key={value} value={value}>
                   {text}
@@ -493,15 +528,50 @@ export default function TaskList() {
           </FormControl>
           
           {/* Type filter */}
-          <FormControl size="small" sx={{ minWidth: '150px' }}>
-            <InputLabel>Type</InputLabel>
+          <FormControl size="small" sx={{ minWidth: '180px' }}>
+            <InputLabel 
+              id="type-filter-label"
+              shrink={true}
+              sx={{
+                backgroundColor: 'white',
+                px: 0.5,
+                transform: 'translate(14px, -9px) scale(0.75)',
+              }}
+            >
+              Type
+            </InputLabel>
             <Select
+              labelId="type-filter-label"
+              id="type-filter"
               value={typeFilter}
               onChange={handleTypeFilterChange}
-              label="Type"
               displayEmpty
+              notched
+              sx={{
+                '.MuiSelect-select': {
+                  paddingTop: '8px',
+                  paddingBottom: '8px',
+                },
+                '.MuiOutlinedInput-notchedOutline': {
+                  borderColor: theme.palette.grey[400],
+                },
+              }}
+              renderValue={(selected) => {
+                if (!selected) return <span style={{opacity: 0.7}}>Any</span>;
+                return TaskTypes[selected as keyof typeof TaskTypes]?.text || selected;
+              }}
+              MenuProps={{
+                anchorOrigin: {
+                  vertical: 'bottom',
+                  horizontal: 'left',
+                },
+                transformOrigin: {
+                  vertical: 'top',
+                  horizontal: 'left',
+                },
+              }}
             >
-              <MenuItem value="">All Types</MenuItem>
+              <MenuItem value="">Any</MenuItem>
               {Object.entries(TaskTypes).map(([value, { text }]) => (
                 <MenuItem key={value} value={value}>
                   {text}

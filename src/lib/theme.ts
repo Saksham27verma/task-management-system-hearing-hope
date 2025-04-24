@@ -66,7 +66,7 @@ const getCommonTypography = () => ({
     fontWeight: 500,
   },
   button: {
-    textTransform: 'none',
+    textTransform: 'none' as 'none',
     fontWeight: 500,
   },
 });

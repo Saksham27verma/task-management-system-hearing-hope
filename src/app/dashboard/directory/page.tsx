@@ -355,129 +355,136 @@ export default function DirectoryPage() {
   // Render grid view (card layout)
   const renderGridView = () => {
     return (
-      <Grid container spacing={2}>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, 1fr)',
+          md: 'repeat(3, 1fr)'
+        },
+        gap: 2
+      }}>
         {filteredAndSortedUsers.map(user => (
-          <Grid item xs={12} sm={6} md={4} key={user._id}>
-            <Paper 
-              elevation={1} 
-              sx={{ 
-                p: 2, 
-                height: '100%', 
-                display: 'flex', 
-                flexDirection: 'column',
-                transition: 'all 0.2s',
-                '&:hover': {
-                  boxShadow: 3
-                }
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar 
-                  sx={{ 
-                    width: 56, 
-                    height: 56, 
-                    bgcolor: getAvatarColor(user.name),
-                    mr: 2
-                  }}
-                >
-                  {user.name.charAt(0).toUpperCase()}
-                </Avatar>
-                
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 'medium' }}>
-                    {user.name}
+          <Paper 
+            key={user._id}
+            elevation={1} 
+            sx={{ 
+              p: 2, 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              transition: 'all 0.2s',
+              '&:hover': {
+                boxShadow: 3
+              }
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Avatar 
+                sx={{ 
+                  width: 56, 
+                  height: 56, 
+                  bgcolor: getAvatarColor(user.name),
+                  mr: 2
+                }}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </Avatar>
+              
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 'medium' }}>
+                  {user.name}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <WorkIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {user.position}
                   </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <WorkIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {user.position}
-                    </Typography>
-                  </Box>
                 </Box>
               </Box>
-              
-              <Chip 
-                label={getRoleDisplay(user.role)}
-                color={getRoleColor(user.role) as any}
-                size="small"
-                sx={{ alignSelf: 'flex-start', mb: 2 }}
-              />
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 0.5 }}>
-                <EmailIcon fontSize="small" color="action" />
-                <Typography 
-                  variant="body2" 
-                  component="a" 
-                  href={`mailto:${user.email}`}
-                  sx={{ 
-                    color: 'primary.main',
-                    flexGrow: 1,
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      fontWeight: 'medium'
-                    }
-                  }}
-                >
-                  {user.email}
-                </Typography>
-                <IconButton 
-                  size="small" 
-                  color="primary"
-                  href={`mailto:${user.email}`}
-                  aria-label="Send email"
-                  title="Send email"
-                >
-                  <MailIcon fontSize="small" />
-                </IconButton>
-                <IconButton 
-                  size="small" 
-                  onClick={() => handleCopy(user.email, 'Email')}
-                  title="Copy email"
-                >
-                  <CopyIcon fontSize="small" />
-                </IconButton>
-              </Box>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <PhoneIcon fontSize="small" color="action" />
-                <Typography 
-                  variant="body2" 
-                  component="a" 
-                  href={`tel:${formatPhoneForLink(user.phone)}`}
-                  sx={{ 
-                    color: 'primary.main',
-                    flexGrow: 1,
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      fontWeight: 'medium'
-                    }
-                  }}
-                >
-                  {user.phone}
-                </Typography>
-                <IconButton 
-                  size="small" 
-                  color="primary"
-                  href={`tel:${formatPhoneForLink(user.phone)}`}
-                  aria-label="Call phone number"
-                  title="Call phone number"
-                >
-                  <CallIcon fontSize="small" />
-                </IconButton>
-                <IconButton 
-                  size="small" 
-                  onClick={() => handleCopy(user.phone, 'Phone')}
-                  title="Copy phone number"
-                >
-                  <CopyIcon fontSize="small" />
-                </IconButton>
-              </Box>
-            </Paper>
-          </Grid>
+            </Box>
+            
+            <Chip 
+              label={getRoleDisplay(user.role)}
+              color={getRoleColor(user.role) as any}
+              size="small"
+              sx={{ alignSelf: 'flex-start', mb: 2 }}
+            />
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5, gap: 0.5 }}>
+              <EmailIcon fontSize="small" color="action" />
+              <Typography 
+                variant="body2" 
+                component="a" 
+                href={`mailto:${user.email}`}
+                sx={{ 
+                  color: 'primary.main',
+                  flexGrow: 1,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    fontWeight: 'medium'
+                  }
+                }}
+              >
+                {user.email}
+              </Typography>
+              <IconButton 
+                size="small" 
+                color="primary"
+                href={`mailto:${user.email}`}
+                aria-label="Send email"
+                title="Send email"
+              >
+                <MailIcon fontSize="small" />
+              </IconButton>
+              <IconButton 
+                size="small" 
+                onClick={() => handleCopy(user.email, 'Email')}
+                title="Copy email"
+              >
+                <CopyIcon fontSize="small" />
+              </IconButton>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <PhoneIcon fontSize="small" color="action" />
+              <Typography 
+                variant="body2" 
+                component="a" 
+                href={`tel:${formatPhoneForLink(user.phone)}`}
+                sx={{ 
+                  color: 'primary.main',
+                  flexGrow: 1,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    fontWeight: 'medium'
+                  }
+                }}
+              >
+                {user.phone}
+              </Typography>
+              <IconButton 
+                size="small" 
+                color="primary"
+                href={`tel:${formatPhoneForLink(user.phone)}`}
+                aria-label="Call phone number"
+                title="Call phone number"
+              >
+                <CallIcon fontSize="small" />
+              </IconButton>
+              <IconButton 
+                size="small" 
+                onClick={() => handleCopy(user.phone, 'Phone')}
+                title="Copy phone number"
+              >
+                <CopyIcon fontSize="small" />
+              </IconButton>
+            </Box>
+          </Paper>
         ))}
-      </Grid>
+      </Box>
     );
   };
 

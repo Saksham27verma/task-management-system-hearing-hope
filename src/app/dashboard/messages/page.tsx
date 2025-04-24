@@ -124,124 +124,35 @@ export default function MessagesPage() {
   // Fetch messages from API
   const fetchMessages = async () => {
     setLoading(true);
-    
     try {
-      console.log('Fetching messages...');
       // Get the appropriate folder based on the selected tab
       const folder = selectedTab === 0 ? 'inbox' : 'sent';
-      console.log(`Requesting ${folder} messages`);
       
-      // Include the folder parameter in the API request
-      const response = await fetch(`/api/messages?folder=${folder}`);
+      const response = await fetch(`/api/messages?folder=${folder}&search=${searchQuery}`);
       const data = await response.json();
-      console.log('API response:', data);
       
-      if (response.ok && data.success) {
-        // Ensure we have a valid array of messages
-        if (Array.isArray(data.messages)) {
-          console.log(`Received ${data.messages.length} messages from the API for ${folder}`);
-          
-          // Update messages with the data from the API
+      if (response.ok) {
+        if (data.success && Array.isArray(data.messages)) {
+          console.log('Messages loaded from API:', data.messages.length);
           setMessages(data.messages);
           setError('');
         } else {
           console.warn('API returned success but messages is not an array:', data.messages);
           setError('Invalid response format from server');
-          
-          // If we've never loaded messages before, use mock data
-          if (messages.length === 0 && process.env.NODE_ENV === 'development') {
-            console.log('Using mock data as fallback');
-            loadMockMessages();
-          }
+          setMessages([]);
         }
       } else {
         console.warn('API request failed:', data.message);
         setError(data.message || 'Failed to fetch messages');
-        
-        // Only load mock data in development and if we have no messages
-        if (messages.length === 0 && process.env.NODE_ENV === 'development') {
-          console.log('Using mock data as fallback due to API error');
-          loadMockMessages();
-        }
+        setMessages([]);
       }
     } catch (err) {
       console.error('Error fetching messages:', err);
       setError('An error occurred while fetching messages');
-      
-      // Only load mock data in development and if we have no messages
-      if (messages.length === 0 && process.env.NODE_ENV === 'development') {
-        console.log('Using mock data as fallback due to error');
-        loadMockMessages();
-      }
+      setMessages([]);
     } finally {
       setLoading(false);
     }
-  };
-
-  // Load mock messages for development
-  const loadMockMessages = () => {
-    console.log('Loading mock messages data');
-    const currentUserId = user?.id || 'current';
-    const currentUserName = user?.name || 'Current User';
-    
-    const mockMessages = [
-      {
-        _id: 'mock-1',
-        sender: {
-          _id: 'user1',
-          name: 'John Manager'
-        },
-        recipient: {
-          _id: currentUserId,
-          name: currentUserName
-        },
-        subject: 'Weekly Report Due [DEMO]',
-        content: 'This is a mock message for demonstration purposes. Please submit your weekly report by Friday afternoon. Let me know if you have any questions.',
-        isRead: true,
-        createdAt: new Date().toISOString(),
-        readAt: new Date().toISOString(),
-        isTaskRelated: false
-      },
-      {
-        _id: 'mock-2',
-        sender: {
-          _id: 'user2',
-          name: 'Sarah Smith'
-        },
-        recipient: {
-          _id: currentUserId,
-          name: currentUserName
-        },
-        subject: 'Client Meeting Notes [DEMO]',
-        content: 'This is a mock message for demonstration purposes. Here are the notes from our meeting with the client. Please review and provide your feedback.',
-        isRead: false,
-        createdAt: new Date().toISOString(),
-        isTaskRelated: true,
-        relatedTask: {
-          _id: 'task1',
-          title: 'Client Meeting Follow-up'
-        }
-      },
-      {
-        _id: 'mock-3',
-        sender: {
-          _id: currentUserId,
-          name: currentUserName
-        },
-        recipient: {
-          _id: 'user3',
-          name: 'David Johnson'
-        },
-        subject: 'Project Update [DEMO]',
-        content: 'This is a mock message for demonstration purposes. Just sending an update on the project progress. We\'ve completed about 75% of the tasks and should be on track for the deadline.',
-        isRead: true,
-        createdAt: new Date().toISOString(),
-        readAt: new Date().toISOString(),
-        isTaskRelated: false
-      }
-    ];
-    
-    setMessages(mockMessages);
   };
 
   // Fetch users from API
@@ -253,16 +164,12 @@ export default function MessagesPage() {
       if (response.ok && data.success) {
         setUsers(data.users);
       } else {
-        // Mock data for development
-        setUsers([
-          { _id: 'user1', name: 'John Manager', position: 'Project Manager' },
-          { _id: 'user2', name: 'Sarah Smith', position: 'Developer' },
-          { _id: 'user3', name: 'David Johnson', position: 'Designer' },
-          { _id: 'user4', name: 'Emily Davis', position: 'Marketing Specialist' }
-        ]);
+        console.warn('Failed to fetch users:', data.message);
+        setUsers([]);
       }
     } catch (err) {
       console.error('Error fetching users:', err);
+      setUsers([]);
     }
   };
 

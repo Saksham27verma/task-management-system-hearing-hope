@@ -121,49 +121,26 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
         setIsLoading(true);
         setFetchError('');
         
-        // For development/testing, use mock data if API fails
-        const useMockData = false;
+        const response = await fetch('/api/users?isActive=true');
         
-        if (!useMockData) {
-          // In production, enable this code instead of mock data
-          const response = await fetch('/api/users?isActive=true');
-          
-          if (!response.ok) {
-            throw new Error('Failed to fetch employees');
-          }
+        if (!response.ok) {
+          throw new Error('Failed to fetch employees');
+        }
 
-          const data = await response.json();
-          if (data.success) {
-            // Filter the users to only include EMPLOYEE and MANAGER roles
-            const filteredUsers = data.users.filter((user: any) => 
-              user.role === 'EMPLOYEE' || user.role === 'MANAGER'
-            );
-            setEmployees(filteredUsers);
-          } else {
-            throw new Error(data.message || 'Failed to fetch employees');
-          }
+        const data = await response.json();
+        if (data.success) {
+          // Filter the users to only include EMPLOYEE and MANAGER roles
+          const filteredUsers = data.users.filter((user: any) => 
+            user.role === 'EMPLOYEE' || user.role === 'MANAGER'
+          );
+          setEmployees(filteredUsers);
         } else {
-          // Use mock data for development
-          console.log('Using mock employee data');
-          setEmployees([
-            { _id: '1', name: 'John Doe' },
-            { _id: '2', name: 'Jane Smith' },
-            { _id: '3', name: 'Mark Johnson' },
-            { _id: '4', name: 'Emily Brown' },
-            { _id: '5', name: 'Robert Wilson' },
-            { _id: '6', name: 'Sarah Taylor' }
-          ]);
+          throw new Error(data.message || 'Failed to fetch employees');
         }
       } catch (error) {
         console.error('Error fetching employees:', error);
-        setFetchError('Failed to load employees. Using sample data instead.');
-        
-        // Always provide some mock data as fallback
-        setEmployees([
-          { _id: '1', name: 'John Doe' },
-          { _id: '2', name: 'Jane Smith' },
-          { _id: '3', name: 'Mark Johnson' }
-        ]);
+        setFetchError('Failed to load employees.');
+        setEmployees([]);
       } finally {
         setIsLoading(false);
       }

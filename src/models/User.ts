@@ -94,7 +94,7 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 UserSchema.methods.hasPermission = async function (permission: string): Promise<boolean> {
   // Check role-based permissions first
   const rolePermissions = ROLE_PERMISSIONS[this.role as keyof typeof ROLE_PERMISSIONS] || [];
-  if (rolePermissions.includes(permission)) {
+  if ((rolePermissions as readonly string[]).includes(permission)) {
     return true;
   }
   

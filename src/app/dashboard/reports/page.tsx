@@ -62,7 +62,6 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ClearIcon from '@mui/icons-material/Clear';
 import AnalyticsDashboard from '@/components/reports/AnalyticsDashboard';
 import ExportReports from '@/components/reports/ExportReports';
-import CustomReportBuilder from '@/components/reports/CustomReportBuilder';
 
 // Report interface
 interface EmployeeReport {
@@ -115,7 +114,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [period, setPeriod] = useState<string>('month');
-  const [viewMode, setViewMode] = useState<number>(0); // 0 = summary, 1 = detailed, 2 = table, 3 = analytics, 4 = custom
+  const [viewMode, setViewMode] = useState<number>(0); // 0 = summary, 1 = detailed, 2 = table, 3 = analytics
   const [roleFilter, setRoleFilter] = useState<string>(''); // '' = all, 'MANAGER', 'EMPLOYEE'
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -219,7 +218,7 @@ export default function ReportsPage() {
     
     return (
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -241,7 +240,7 @@ export default function ReportsPage() {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -257,7 +256,7 @@ export default function ReportsPage() {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -273,7 +272,7 @@ export default function ReportsPage() {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card variant="outlined">
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
@@ -306,7 +305,7 @@ export default function ReportsPage() {
     return (
       <Grid container spacing={3}>
         {reportData.reports.map(report => (
-          <Grid item xs={12} md={6} key={report.employeeId}>
+          <Grid size={{ xs: 12, md: 6 }} key={report.employeeId}>
             <Paper elevation={1} sx={{ p: 2, height: '100%' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Avatar sx={{ mr: 2, bgcolor: report.employeeRole === 'MANAGER' ? 'secondary.main' : 'primary.main' }}>
@@ -331,7 +330,7 @@ export default function ReportsPage() {
               <Divider sx={{ mb: 2 }} />
               
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     Completion Rate
                   </Typography>
@@ -350,7 +349,7 @@ export default function ReportsPage() {
                   </Box>
                 </Grid>
                 
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">
                     On-Time Completion
                   </Typography>
@@ -371,25 +370,25 @@ export default function ReportsPage() {
               </Grid>
               
               <Grid container spacing={1}>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" color="success.main">{report.completedTasks}</Typography>
                     <Typography variant="caption" color="text.secondary">Completed</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" color="info.main">{report.inProgressTasks}</Typography>
                     <Typography variant="caption" color="text.secondary">In Progress</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" color="warning.main">{report.pendingTasks}</Typography>
                     <Typography variant="caption" color="text.secondary">Pending</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={3}>
+                <Grid size={{ xs: 3 }}>
                   <Box sx={{ textAlign: 'center' }}>
                     <Typography variant="h6" color="error.main">{report.incompleteOrDelayedTasks}</Typography>
                     <Typography variant="caption" color="text.secondary">Delayed</Typography>
@@ -753,20 +752,15 @@ export default function ReportsPage() {
                   iconPosition="start" 
                   label="Advanced Analytics" 
                 />
-                <Tab 
-                  icon={<AssessmentOutlined />} 
-                  iconPosition="start" 
-                  label="Custom Reports" 
-                />
               </Tabs>
             </Box>
             
-            <Box sx={{ mt: 2 }}>
+            <Box>
               {viewMode === 0 && (
                 <Box>
                   <Typography variant="h6" sx={{ mb: 2 }}>Performance Overview</Typography>
                   <Grid container spacing={3}>
-                    <Grid item xs={12} md={7}>
+                    <Grid size={{ xs: 12, md: 7 }}>
                       <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
                         <Typography variant="subtitle1" sx={{ mb: 2 }}>
                           Top Performers
@@ -816,7 +810,7 @@ export default function ReportsPage() {
                       </Paper>
                     </Grid>
                     
-                    <Grid item xs={12} md={5}>
+                    <Grid size={{ xs: 12, md: 5 }}>
                       <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
                         <Typography variant="subtitle1" sx={{ mb: 2 }}>
                           Task Distribution
@@ -871,11 +865,11 @@ export default function ReportsPage() {
               {viewMode === 2 && renderTable()}
               
               {viewMode === 3 && (
-                <AnalyticsDashboard reportData={reportData} isLoading={isLoading} />
-              )}
-              
-              {viewMode === 4 && (
-                <CustomReportBuilder />
+                <AnalyticsDashboard 
+                  period={period} 
+                  role={roleFilter || 'all'} 
+                  onRefresh={() => fetchReports()}
+                />
               )}
             </Box>
           </>

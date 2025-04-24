@@ -2,6 +2,7 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type TaskType = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELAYED' | 'INCOMPLETE';
+export type TaskPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
 export interface IProgressUpdate {
   date: Date;
@@ -16,6 +17,7 @@ export interface ITask extends Document {
   assignedBy: Types.ObjectId;
   taskType: TaskType;
   status: TaskStatus;
+  priority: TaskPriority;
   startDate: Date;
   dueDate: Date;
   dateRange: {
@@ -26,6 +28,8 @@ export interface ITask extends Document {
   progressUpdates: IProgressUpdate[];
   completedDate?: Date;
   googleCalendarEventId?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const ProgressUpdateSchema = new Schema<IProgressUpdate>({
@@ -80,6 +84,11 @@ const TaskSchema = new Schema<ITask>(
       type: String,
       enum: ['DAILY', 'WEEKLY', 'MONTHLY'],
       required: [true, 'Please provide task type'],
+    },
+    priority: {
+      type: String,
+      enum: ['HIGH', 'MEDIUM', 'LOW'],
+      default: 'MEDIUM',
     },
     status: {
       type: String,

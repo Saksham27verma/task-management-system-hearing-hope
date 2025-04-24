@@ -29,7 +29,8 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Snackbar
+  Snackbar,
+  Tooltip
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -130,11 +131,6 @@ export default function UsersPage() {
     
     try {
       const response = await fetch('/api/users');
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      
       const data = await response.json();
       
       if (data.success) {
@@ -145,65 +141,7 @@ export default function UsersPage() {
     } catch (error: any) {
       console.error('Error fetching users:', error);
       setError(error.message || 'An error occurred while fetching users');
-      
-      // Mock data for development
-      setUsers([
-        {
-          _id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          role: 'MANAGER',
-          phone: '(555) 123-4567',
-          position: 'Senior Manager',
-          isActive: true,
-          lastLogin: '2023-05-01T12:00:00Z',
-          createdAt: '2022-01-15T10:30:00Z'
-        },
-        {
-          _id: '2',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          role: 'EMPLOYEE',
-          phone: '(555) 987-6543',
-          position: 'Developer',
-          isActive: true,
-          lastLogin: '2023-05-02T09:15:00Z',
-          createdAt: '2022-02-20T14:45:00Z'
-        },
-        {
-          _id: '3',
-          name: 'Robert Johnson',
-          email: 'robert@example.com',
-          role: 'EMPLOYEE',
-          phone: '(555) 456-7890',
-          position: 'Designer',
-          isActive: false,
-          lastLogin: '2023-04-15T11:30:00Z',
-          createdAt: '2022-03-10T09:00:00Z'
-        },
-        {
-          _id: '4',
-          name: 'Emily Davis',
-          email: 'emily@example.com',
-          role: 'SUPER_ADMIN',
-          phone: '(555) 234-5678',
-          position: 'CTO',
-          isActive: true,
-          lastLogin: '2023-05-03T16:45:00Z',
-          createdAt: '2021-12-05T08:15:00Z'
-        },
-        {
-          _id: '5',
-          name: 'Michael Wilson',
-          email: 'michael@example.com',
-          role: 'EMPLOYEE',
-          phone: '(555) 876-5432',
-          position: 'Support Specialist',
-          isActive: true,
-          lastLogin: '2023-05-01T10:20:00Z',
-          createdAt: '2022-04-25T13:10:00Z'
-        }
-      ]);
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
@@ -673,10 +611,14 @@ export default function UsersPage() {
                             size="small" 
                             color="secondary" 
                             onClick={() => handleManagePermissions(user._id)}
-                            disabled={!currentUser || currentUser.role !== 'SUPER_ADMIN'}
-                            title="Manage Permissions"
+                            disabled={true}
+                            title="Permissions (Coming Soon)"
                           >
-                            <LockIcon fontSize="small" />
+                            <Tooltip title="Feature under development - Coming soon">
+                              <span>
+                                <LockIcon fontSize="small" />
+                              </span>
+                            </Tooltip>
                           </IconButton>
                           <IconButton 
                             size="small" 

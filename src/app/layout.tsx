@@ -4,12 +4,17 @@ import './globals.css';
 export const metadata = {
   title: 'Hearing Hope - Task Management System',
   description: 'A comprehensive task management system for Hearing Hope organization',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
-  themeColor: '#EE6417',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-icon.png',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#EE6417',
 };
 
 export default function RootLayout({

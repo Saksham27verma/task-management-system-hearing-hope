@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 
 declare global {
   var mongoose: {
-    conn: typeof mongoose | null;
-    promise: Promise<typeof mongoose> | null;
+    conn: mongoose.Connection | null;
+    promise: Promise<mongoose.Connection> | null;
   };
 }
 
@@ -30,7 +30,7 @@ async function connectToDatabase() {
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
+      return mongoose.connection;
     });
   }
 

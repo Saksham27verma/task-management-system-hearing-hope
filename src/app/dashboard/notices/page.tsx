@@ -100,49 +100,12 @@ export default function NoticesPage() {
         setNotices(data.notices);
       } else {
         setError(data.message || 'Failed to fetch notices');
-        
-        // Mock data for development
-        setNotices([
-          {
-            _id: '1',
-            title: 'Office Closure for Holiday',
-            content: 'The office will be closed on Monday, September 5th for Labor Day. Regular hours will resume on Tuesday.',
-            postedBy: {
-              _id: 'admin1',
-              name: 'Admin User'
-            },
-            createdAt: '2023-08-25T14:20:33Z',
-            isImportant: true,
-            expiryDate: '2023-09-06T00:00:00Z'
-          },
-          {
-            _id: '2',
-            title: 'New Employee Welcome',
-            content: 'Please join us in welcoming Sarah Johnson to our team. Sarah will be joining the development department starting next week.',
-            postedBy: {
-              _id: 'manager1',
-              name: 'John Manager'
-            },
-            createdAt: '2023-08-28T09:45:12Z',
-            isImportant: false,
-            expiryDate: '2023-09-15T00:00:00Z'
-          },
-          {
-            _id: '3',
-            title: 'Meeting Room Updates',
-            content: 'The conference room on the second floor will be under renovation from September 10-15. Please use the third floor meeting rooms during this period.',
-            postedBy: {
-              _id: 'admin1',
-              name: 'Admin User'
-            },
-            createdAt: '2023-08-30T11:30:00Z',
-            isImportant: false
-          }
-        ]);
+        setNotices([]);
       }
     } catch (err) {
       console.error('Error fetching notices:', err);
       setError('An error occurred while fetching notices');
+      setNotices([]);
     } finally {
       setLoading(false);
     }
@@ -475,9 +438,9 @@ export default function NoticesPage() {
         
         {/* Notices list */}
         {!loading && sortedNotices.length > 0 && (
-          <Grid container spacing={3}>
+          <Grid spacing={3}>
             {sortedNotices.map(notice => (
-              <Grid item xs={12} key={notice._id}>
+              <Grid size={{ xs: 12 }} key={notice._id}>
                 <Card variant="outlined" sx={{ 
                   borderLeft: notice.isImportant ? 4 : 1, 
                   borderLeftColor: notice.isImportant ? 'error.main' : 'divider',
@@ -535,7 +498,7 @@ export default function NoticesPage() {
                     
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
                       <Typography variant="body2" color="text.secondary">
-                        Posted by: {notice.postedBy.name}
+                        Posted by: {notice.postedBy?.name || 'Unknown'}
                       </Typography>
                       
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

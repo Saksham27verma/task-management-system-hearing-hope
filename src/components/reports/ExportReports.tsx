@@ -13,7 +13,9 @@ import {
   Checkbox,
   Typography,
   Grid,
-  CircularProgress
+  CircularProgress,
+  Snackbar,
+  Alert
 } from '@mui/material';
 import { 
   CloudDownloadOutlined, 
@@ -24,10 +26,19 @@ import {
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { CSVLink } from 'react-csv';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 interface ExportReportsProps {
   reportData: any;
   period: string;
+}
+
+// Extend the jsPDF type to include the autoTable method
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
 }
 
 export default function ExportReports({ reportData, period }: ExportReportsProps) {
@@ -43,6 +54,11 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
     summary: true
   });
   const [isExporting, setIsExporting] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success' as 'success' | 'error'
+  });
   
   const open = Boolean(anchorEl);
   
@@ -171,31 +187,188 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
     return csvData;
   };
   
-  // Handle PDF export
+  // Handle report generation using simple HTML instead of PDF
   const handlePdfExport = async () => {
     if (!reportData) return;
     
     try {
       setIsExporting(true);
       
-      // In a real implementation, we would use a library like jsPDF to generate PDFs
-      // For this example, we'll simulate the PDF generation with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       const dateStr = format(new Date(), 'yyyy-MM-dd');
       const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
-      const filename = `Task_Performance_Report_${periodLabel}_${dateStr}.pdf`;
       
-      // In a real implementation, we would have code here to generate and save the PDF
-      // For now, we'll just show an alert
-      alert(`PDF export functionality will be available in the next update.\nFilename: ${filename}`);
+      // Generate an HTML report
+      const reportHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Task Performance Report - ${periodLabel}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 1000px;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              h1, h2 {
+                color: #2c3e50;
+                text-align: center;
+              }
+              .report-meta {
+                text-align: center;
+                color: #7f8c8d;
+                margin-bottom: 30px;
+              }
+              .section {
+                margin-bottom: 30px;
+                border: 1px solid #eee;
+                padding: 20px;
+                border-radius: 5px;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 20px 0;
+              }
+              th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #ddd;
+              }
+              th {
+                background-color: #f2f2f2;
+                font-weight: bold;
+              }
+              tr:hover {
+                background-color: #f5f5f5;
+              }
+              .completion-rate {
+                font-weight: bold;
+                color: #27ae60;
+              }
+              .print-button {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 16px;
+                margin: 20px 0;
+                cursor: pointer;
+                border-radius: 4px;
+              }
+              .print-container {
+                text-align: center;
+              }
+              .footer {
+                text-align: center;
+                margin-top: 30px;
+                font-size: 12px;
+                color: #7f8c8d;
+              }
+              @media print {
+                .print-container {
+                  display: none;
+                }
+                body {
+                  padding: 0;
+                  margin: 0;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="print-container">
+              <button class="print-button" onclick="window.print()">Print Report</button>
+            </div>
+            
+            <h1>Task Performance Report</h1>
+            <div class="report-meta">
+              <p>Period: ${periodLabel}</p>
+              <p>Generated on: ${format(new Date(), 'MMMM dd, yyyy')}</p>
+            </div>
+            
+            <div class="section">
+              <h2>Summary</h2>
+              <p>Total Users: <strong>${reportData.summary.totalUsers}</strong></p>
+              <p>Total Tasks: <strong>${reportData.summary.totalTasks}</strong></p>
+              <p>Completed Tasks: <strong>${reportData.summary.completedTasks}</strong></p>
+              <p>Average Completion Rate: <strong>${reportData.summary.averageCompletionRate}%</strong></p>
+            </div>
+            
+            <div class="section">
+              <h2>Employee Performance</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    ${exportFields.employeeInfo ? '<th>Role</th>' : ''}
+                    ${exportFields.completionRates ? '<th>Completion Rate</th>' : ''}
+                    ${exportFields.taskCounts ? '<th>Total Tasks</th><th>Completed</th><th>Pending</th>' : ''}
+                    ${exportFields.taskTypes ? '<th>Daily Tasks</th><th>Weekly Tasks</th><th>Monthly Tasks</th>' : ''}
+                  </tr>
+                </thead>
+                <tbody>
+                  ${reportData.reports.map((report: any) => `
+                    <tr>
+                      <td>${report.employeeName}</td>
+                      ${exportFields.employeeInfo ? `<td>${report.employeeRole}</td>` : ''}
+                      ${exportFields.completionRates ? `<td class="completion-rate">${report.completionRate}%</td>` : ''}
+                      ${exportFields.taskCounts ? `
+                        <td>${report.totalTasks}</td>
+                        <td>${report.completedTasks}</td>
+                        <td>${report.pendingTasks}</td>
+                      ` : ''}
+                      ${exportFields.taskTypes ? `
+                        <td>${report.tasksByType?.daily || 0}</td>
+                        <td>${report.tasksByType?.weekly || 0}</td>
+                        <td>${report.tasksByType?.monthly || 0}</td>
+                      ` : ''}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Task Management System - Confidential</p>
+            </div>
+            
+            <script>
+              // Auto-print when loaded (optional)
+              // window.onload = function() { window.print(); };
+            </script>
+          </body>
+        </html>
+      `;
+      
+      // Open the report in a new window
+      const reportWindow = window.open('', '_blank');
+      if (!reportWindow) {
+        throw new Error('Popup was blocked. Please allow popups and try again.');
+      }
+      
+      reportWindow.document.write(reportHtml);
+      reportWindow.document.close();
+      reportWindow.focus();
       
       setIsExporting(false);
       setDialogOpen(false);
     } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Failed to export PDF. Please try again.');
+      console.error('Error generating report:', error);
       setIsExporting(false);
+      setDialogOpen(false);
+      // Display error message to user through a notification
+      setSnackbar({
+        open: true,
+        message: 'Failed to generate report. Please try again.',
+        severity: 'error'
+      });
     }
   };
   
@@ -240,7 +413,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
         </MenuItem>
         <MenuItem onClick={() => handleExportTypeSelect('pdf')}>
           <PictureAsPdf fontSize="small" sx={{ mr: 1 }} />
-          Export as PDF
+          Generate Report
         </MenuItem>
       </Menu>
       
@@ -251,8 +424,14 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
         fullWidth
       >
         <DialogTitle>
-          Export Report as {exportType.toUpperCase()}
+          {exportType === 'csv' ? 'Export Report as CSV' : 'Generate Performance Report'}
         </DialogTitle>
+        
+        {exportType === 'pdf' && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            The report will open in a new browser tab where you can view and print it.
+          </Alert>
+        )}
         
         <DialogContent>
           <Typography variant="body2" color="text.secondary" paragraph>
@@ -260,7 +439,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
           </Typography>
           
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -273,7 +452,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -285,7 +464,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -297,7 +476,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -309,7 +488,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -321,7 +500,7 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               />
             </Grid>
             
-            <Grid item xs={6}>
+            <Grid size={6}>
               <FormControlLabel
                 control={
                   <Checkbox 
@@ -365,15 +544,32 @@ export default function ExportReports({ reportData, period }: ExportReportsProps
               {isExporting ? (
                 <>
                   <CircularProgress size={20} sx={{ mr: 1 }} />
-                  Exporting...
+                  Generating Report...
                 </>
               ) : (
-                'Export PDF'
+                'Generate Report'
               )}
             </Button>
           )}
         </DialogActions>
       </Dialog>
+      
+      {/* Snackbar for error notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 } 

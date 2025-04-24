@@ -107,23 +107,8 @@ export default function CompanyPage() {
       console.error('Error fetching company information:', error);
       setError(error.message || 'An error occurred while fetching company information');
       
-      // Mock data for development
-      setCompany({
-        _id: '1',
-        name: 'Hearing Hope',
-        description: 'Hearing Hope is dedicated to providing comprehensive hearing healthcare services to improve quality of life for individuals with hearing impairments. Our mission is to deliver exceptional care, advanced technology, and compassionate service to enhance communication abilities and foster connection within our community.',
-        address: '123 Main Street, Suite 100, San Francisco, CA 94105',
-        email: 'info@hearinghope.org',
-        phone: '(555) 123-4567',
-        website: 'https://www.hearinghope.org',
-        logoUrl: 'https://via.placeholder.com/150',
-        socialLinks: [
-          { platform: 'Facebook', url: 'https://facebook.com/hearinghope' },
-          { platform: 'Twitter', url: 'https://twitter.com/hearinghope' },
-          { platform: 'Instagram', url: 'https://instagram.com/hearinghope' },
-          { platform: 'LinkedIn', url: 'https://linkedin.com/company/hearinghope' }
-        ]
-      });
+      // Remove mock data to ensure we're only using real data
+      // If you need to create initial company data, run the seed script instead
     } finally {
       setIsLoading(false);
     }
@@ -284,7 +269,7 @@ export default function CompanyPage() {
       ) : company ? (
         <Grid container spacing={3}>
           {/* Company overview card */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }} component="div">
             <Paper elevation={2} sx={{ p: 3, position: 'relative' }}>
               {isSuperAdmin && (
                 <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
@@ -363,7 +348,7 @@ export default function CompanyPage() {
           </Grid>
           
           {/* Contact information card */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }} component="div">
             <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
               <Typography variant="h6" gutterBottom>
                 Contact Information
@@ -462,7 +447,7 @@ export default function CompanyPage() {
           </Grid>
           
           {/* Social media links card */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }} component="div">
             <Paper elevation={2} sx={{ p: 3, height: '100%' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Typography variant="h6">

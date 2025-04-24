@@ -7,7 +7,8 @@
  */
 
 console.log('Starting seed script...');
-require('dotenv').config({ path: '.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -118,8 +119,45 @@ const seedDatabase = async () => {
   const connected = await connectToDatabase();
   
   if (connected) {
-    await createSuperAdmin();
-    console.log('✅ Seed process completed');
+    try {
+      // Remove any test/sample data accounts
+      console.log('Removing any sample/test accounts...');
+      const User = mongoose.models.User || mongoose.model('User', userSchema);
+      
+      // Delete sample users
+      const mockEmails = [
+        'admin@example.com',
+        'manager@example.com',
+        'employee1@example.com',
+        'employee2@example.com',
+        'employee3@example.com'
+      ];
+      
+      const deleteResult = await User.deleteMany({ 
+        email: { $in: mockEmails }
+      });
+      
+      console.log(`✅ Removed ${deleteResult.deletedCount} sample/test accounts`);
+      
+      // Delete sample tasks with random titles
+      console.log('Removing sample/test tasks...');
+      const Task = mongoose.models.Task || mongoose.model('Task', {
+        title: String,
+        description: String
+      });
+      
+      const taskDeleteResult = await Task.deleteMany({
+        title: { $regex: /^Task \d+$/ } // Delete tasks with titles like "Task 123"
+      });
+      
+      console.log(`✅ Removed ${taskDeleteResult.deletedCount} sample/test tasks`);
+      
+      // Now create the super admin account
+      await createSuperAdmin();
+      console.log('✅ Seed process completed');
+    } catch (error) {
+      console.error('❌ Error during seed process:', error);
+    }
   } else {
     console.error('❌ Could not connect to database, seed process failed');
   }

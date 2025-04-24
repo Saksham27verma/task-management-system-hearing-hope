@@ -18,8 +18,8 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Grid,
 } from '@mui/material';
+import Grid from '@mui/material/Grid';
 import {
   AssignmentOutlined as TaskIcon,
   PeopleOutlined as PeopleIcon,
@@ -490,43 +490,41 @@ export default function AdminDashboard() {
         <Typography variant="h6" gutterBottom>
           System Maintenance
         </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="subtitle1" gutterBottom>
-                  Permission System
-                </Typography>
-                <Typography variant="body2" color="text.secondary" paragraph>
-                  If users are experiencing permission issues, you can fix all permissions system-wide.
-                </Typography>
-                <Button 
-                  variant="contained" 
-                  color="warning" 
-                  onClick={async () => {
-                    if (window.confirm('Are you sure you want to fix permissions for all users? This will reset permissions to their role defaults.')) {
-                      try {
-                        const response = await fetch('/api/system/fix-permissions');
-                        const data = await response.json();
-                        if (data.success) {
-                          alert(`Permissions fixed for ${data.count} users. The page will reload.`);
-                          window.location.reload();
-                        } else {
-                          alert('Error fixing permissions: ' + data.message);
-                        }
-                      } catch (error) {
-                        console.error('Error fixing permissions:', error);
-                        alert('Error fixing permissions. Check console for details.');
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+          <Card variant="outlined" sx={{ width: '100%' }}>
+            <CardContent>
+              <Typography variant="subtitle1" gutterBottom>
+                Permission System
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                If users are experiencing permission issues, you can fix all permissions system-wide.
+              </Typography>
+              <Button 
+                variant="contained" 
+                color="warning" 
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to fix permissions for all users? This will reset permissions to their role defaults.')) {
+                    try {
+                      const response = await fetch('/api/system/fix-permissions');
+                      const data = await response.json();
+                      if (data.success) {
+                        alert(`Permissions fixed for ${data.count} users. The page will reload.`);
+                        window.location.reload();
+                      } else {
+                        alert('Error fixing permissions: ' + data.message);
                       }
+                    } catch (error) {
+                      console.error('Error fixing permissions:', error);
+                      alert('Error fixing permissions. Check console for details.');
                     }
-                  }}
-                >
-                  Fix All Permissions
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
+                  }
+                }}
+              >
+                Fix All Permissions
+              </Button>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
     </Box>
   );

@@ -19,7 +19,9 @@ import {
   Select,
   InputLabel,
   Grid,
-  Alert
+  Alert,
+  Paper,
+  FormGroup
 } from '@mui/material';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import PrintIcon from '@mui/icons-material/Print';
@@ -69,13 +71,11 @@ const ReportExport: React.FC<ReportExportProps> = ({
     setExportError(null);
   };
 
-  const handleOptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, checked, type } = event.target;
-    
-    setExportOptions({
-      ...exportOptions,
-      [name]: type === 'checkbox' ? checked : value
-    });
+  const handleOptionChange = (name: string, value: any) => {
+    setExportOptions(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
   
   const handleFieldSelectAll = (checked: boolean) => {
@@ -106,23 +106,27 @@ const ReportExport: React.FC<ReportExportProps> = ({
     setExportError(null);
     
     try {
-      // Construct API endpoint and query parameters
-      const params = new URLSearchParams();
-      params.append('format', exportOptions.format);
-      params.append('includeCharts', exportOptions.includeCharts.toString());
-      params.append('includeDetails', exportOptions.includeDetails.toString());
-      params.append('fileName', exportOptions.fileName);
-      params.append('paperSize', exportOptions.paperSize);
-      params.append('orientation', exportOptions.orientation);
-      params.append('fields', exportOptions.selectedFields.join(','));
+      // Prepare export options
+      const exportData = {
+        data: reportData,
+        options: {
+          format: exportOptions.format,
+          includeCharts: exportOptions.includeCharts,
+          includeDetails: exportOptions.includeDetails,
+          fileName: exportOptions.fileName,
+          paperSize: exportOptions.paperSize,
+          orientation: exportOptions.orientation,
+          fields: exportOptions.selectedFields
+        }
+      };
       
       // Send request to API
-      const response = await fetch(`/api/reports/export?${params.toString()}`, {
+      const response = await fetch('/api/reports/export', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ reportData }),
+        body: JSON.stringify(exportData),
       });
       
       if (!response.ok) {
@@ -131,27 +135,15 @@ const ReportExport: React.FC<ReportExportProps> = ({
       }
       
       // Handle response based on format
-      if (exportOptions.format === 'pdf') {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${exportOptions.fileName}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${exportOptions.fileName}.${exportOptions.format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${exportOptions.fileName}.${exportOptions.format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
       handleClose();
     } catch (error) {
@@ -253,111 +245,110 @@ const ReportExport: React.FC<ReportExportProps> = ({
           )}
           
           <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Export Format
-                </Typography>
-                <RadioGroup
-                  name="format"
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel id="export-format-label">Export Format</InputLabel>
+                <Select
+                  labelId="export-format-label"
+                  id="export-format"
                   value={exportOptions.format}
-                  onChange={handleOptionChange}
-                  row
+                  onChange={(e) => handleOptionChange('format', e.target.value as 'pdf' | 'excel' | 'csv')}
+                  label="Export Format"
                 >
-                  <FormControlLabel value="pdf" control={<Radio />} label="PDF" />
-                  <FormControlLabel value="excel" control={<Radio />} label="Excel" />
-                  <FormControlLabel value="csv" control={<Radio />} label="CSV" />
-                </RadioGroup>
-              </Box>
-              
+                  <MenuItem value="pdf">PDF</MenuItem>
+                  <MenuItem value="excel">Excel</MenuItem>
+                  <MenuItem value="csv">CSV</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
-                margin="normal"
                 label="File Name"
-                name="fileName"
                 value={exportOptions.fileName}
-                onChange={handleOptionChange}
-                helperText="File extension will be added automatically"
+                onChange={(e) => handleOptionChange('fileName', e.target.value)}
               />
-              
-              {exportOptions.format === 'pdf' && (
-                <>
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel id="paper-size-label">Paper Size</InputLabel>
-                    <Select
-                      labelId="paper-size-label"
-                      name="paperSize"
-                      value={exportOptions.paperSize}
-                      label="Paper Size"
-                      onChange={handleOptionChange as any}
-                    >
-                      <MenuItem value="a4">A4</MenuItem>
-                      <MenuItem value="letter">Letter</MenuItem>
-                      <MenuItem value="legal">Legal</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  <FormControl fullWidth margin="normal">
-                    <InputLabel id="orientation-label">Orientation</InputLabel>
-                    <Select
-                      labelId="orientation-label"
-                      name="orientation"
-                      value={exportOptions.orientation}
-                      label="Orientation"
-                      onChange={handleOptionChange as any}
-                    >
-                      <MenuItem value="portrait">Portrait</MenuItem>
-                      <MenuItem value="landscape">Landscape</MenuItem>
-                    </Select>
-                  </FormControl>
-                </>
-              )}
             </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle1" gutterBottom>
-                  Content Options
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={exportOptions.includeCharts}
-                      onChange={handleOptionChange}
-                      name="includeCharts"
-                    />
-                  }
-                  label="Include Charts"
-                />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={exportOptions.includeDetails}
-                      onChange={handleOptionChange}
-                      name="includeDetails"
-                    />
-                  }
-                  label="Include Details"
-                />
-              </Box>
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box>
-                <Typography variant="subtitle1" gutterBottom>
-                  Fields to Include
-                </Typography>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={allFieldsSelected}
-                      indeterminate={someFieldsSelected}
-                      onChange={(e) => handleFieldSelectAll(e.target.checked)}
-                    />
-                  }
-                  label="Select All"
-                />
-                <Box sx={{ ml: 2, display: 'flex', flexDirection: 'column', maxHeight: 200, overflowY: 'auto' }}>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel id="paper-size-label">Paper Size</InputLabel>
+                <Select
+                  labelId="paper-size-label"
+                  id="paper-size"
+                  value={exportOptions.paperSize}
+                  onChange={(e) => handleOptionChange('paperSize', e.target.value as 'a4' | 'letter' | 'legal')}
+                  label="Paper Size"
+                  disabled={exportOptions.format !== 'pdf'}
+                >
+                  <MenuItem value="a4">A4</MenuItem>
+                  <MenuItem value="letter">Letter</MenuItem>
+                  <MenuItem value="legal">Legal</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <FormControl fullWidth>
+                <InputLabel id="orientation-label">Orientation</InputLabel>
+                <Select
+                  labelId="orientation-label"
+                  id="orientation"
+                  value={exportOptions.orientation}
+                  onChange={(e) => handleOptionChange('orientation', e.target.value as 'portrait' | 'landscape')}
+                  label="Orientation"
+                  disabled={exportOptions.format !== 'pdf'}
+                >
+                  <MenuItem value="portrait">Portrait</MenuItem>
+                  <MenuItem value="landscape">Landscape</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Content Options
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={exportOptions.includeCharts}
+                        onChange={(e) => handleOptionChange('includeCharts', e.target.checked)}
+                      />
+                    }
+                    label="Include Charts"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={exportOptions.includeDetails}
+                        onChange={(e) => handleOptionChange('includeDetails', e.target.checked)}
+                      />
+                    }
+                    label="Include Details"
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Fields to Include
+              </Typography>
+              <Paper variant="outlined" sx={{ p: 2, maxHeight: 200, overflow: 'auto' }}>
+                <FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={allFieldsSelected}
+                        indeterminate={someFieldsSelected}
+                        onChange={(e) => handleFieldSelectAll(e.target.checked)}
+                      />
+                    }
+                    label="Select All"
+                  />
                   {fields.map((field) => (
                     <FormControlLabel
                       key={field.id}
@@ -370,21 +361,23 @@ const ReportExport: React.FC<ReportExportProps> = ({
                       label={field.label}
                     />
                   ))}
-                </Box>
-              </Box>
+                </FormGroup>
+              </Paper>
             </Grid>
           </Grid>
         </DialogContent>
         
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button 
-            onClick={printReport} 
-            startIcon={<PrintIcon />}
-            disabled={exportOptions.selectedFields.length === 0}
-          >
-            Print
-          </Button>
+          {exportOptions.format === 'pdf' && (
+            <Button 
+              onClick={printReport}
+              disabled={exportOptions.selectedFields.length === 0}
+              startIcon={<PrintIcon />}
+            >
+              Print
+            </Button>
+          )}
           <Button 
             onClick={exportReport}
             variant="contained" 

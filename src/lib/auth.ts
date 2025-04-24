@@ -2,7 +2,7 @@ import jwt, { JwtPayload as BaseJwtPayload } from 'jsonwebtoken';
 import { IUser } from '../models/User';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { Permission } from '@/models/Permission';
+import { Permission } from '@/types/permissions';
 import { hasPermission, hasAnyPermission, hasAllPermissions } from './permissions';
 
 // Environment variables for JWT
@@ -17,24 +17,26 @@ export interface JwtPayload extends BaseJwtPayload {
 }
 
 // Create a JWT token for a user
-export function createToken(user: {
-  _id: string;
-  role: string;
-  email: string;
-}): string {
+export function createToken(user: IUser): string {
   if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is not defined in environment variables');
+    console.error('JWT_SECRET is not defined in environment variables');
+    throw new Error('JWT_SECRET is not defined');
   }
 
-  return jwt.sign(
-    {
-      userId: user._id,
+  try {
+    const payload: JwtPayload = {
+      userId: user._id.toString(),
       role: user.role,
       email: user.email,
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) // 7 days
+    };
+    
+    return jwt.sign(payload, process.env.JWT_SECRET);
+  } catch (error) {
+    console.error('Error creating JWT token:', error);
+    throw new Error('Failed to create authentication token');
+  }
 }
 
 // Verify a JWT token
@@ -45,8 +47,18 @@ export function verifyToken(token: string): JwtPayload | null {
   }
 
   try {
-    return jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
+    
+    // Check if token is expired
+    const now = Math.floor(Date.now() / 1000);
+    if (decoded.exp && decoded.exp < now) {
+      console.log('Token is expired');
+      return null;
+    }
+    
+    return decoded;
   } catch (error) {
+    console.error('Error verifying JWT token:', error);
     return null;
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   Box,
   Typography,
@@ -38,7 +38,8 @@ interface User {
   role: 'SUPER_ADMIN' | 'MANAGER' | 'EMPLOYEE';
 }
 
-export default function UserPermissionsManagement() {
+// Client component that uses useSearchParams
+function UserPermissionsContent() {
   const searchParams = useSearchParams();
   const urlUserId = searchParams.get('userId');
   
@@ -198,153 +199,175 @@ export default function UserPermissionsManagement() {
   
   filteredPermissions.forEach(permission => {
     const [resource] = permission.split(':');
+    
     if (!groupedPermissions[resource]) {
       groupedPermissions[resource] = [];
     }
+    
     groupedPermissions[resource].push(permission);
   });
 
-  // Get selected user name
-  const selectedUserName = users.find(user => user._id === selectedUserId)?.name || '';
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
 
   return (
     <Box>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h4" gutterBottom>
         User Permissions Management
       </Typography>
       
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       
-      <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ mb: 3 }}>
-          <FormControl fullWidth>
-            <InputLabel id="user-select-label">Select User</InputLabel>
-            <Select
-              labelId="user-select-label"
-              id="user-select"
-              value={selectedUserId}
-              label="Select User"
-              onChange={handleUserChange}
-              disabled={loading}
-            >
-              <MenuItem value="">
-                <em>Select a user</em>
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {success}
+        </Alert>
+      )}
+      
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <FormControl fullWidth>
+          <InputLabel id="user-select-label">Select User</InputLabel>
+          <Select
+            labelId="user-select-label"
+            id="user-select"
+            value={selectedUserId}
+            label="Select User"
+            onChange={handleUserChange}
+            disabled={loading}
+          >
+            <MenuItem value="">
+              <em>Select a user</em>
+            </MenuItem>
+            {users.map((user) => (
+              <MenuItem key={user._id} value={user._id}>
+                {user.name} ({user.email}) - {user.role}
               </MenuItem>
-              {users.map(user => (
-                <MenuItem key={user._id} value={user._id}>
-                  {user.name} ({user.email}) - {user.role}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-        
-        {selectedUserId && (
-          <>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-              <Typography variant="subtitle1">
-                Managing permissions for: <strong>{selectedUserName}</strong>
-              </Typography>
-              <Box>
-                <Button 
-                  variant="outlined" 
-                  startIcon={<RefreshIcon />} 
-                  onClick={() => fetchUserPermissions(selectedUserId)}
-                  disabled={loading}
-                  sx={{ mr: 1 }}
-                >
-                  Refresh
-                </Button>
-                <Button 
-                  variant="contained" 
-                  color="primary"
-                  startIcon={<SaveIcon />}
-                  onClick={handleSavePermissions}
-                  disabled={loading}
-                >
-                  Save Changes
-                </Button>
-              </Box>
-            </Box>
-            
-            <TextField
-              label="Search Permissions"
-              variant="outlined"
-              size="small"
-              fullWidth
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            
-            {loading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : (
-              <TableContainer component={Paper} variant="outlined">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell width="30%"><strong>Resource</strong></TableCell>
-                      <TableCell><strong>Permissions</strong></TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {Object.entries(groupedPermissions).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={2} align="center">
-                          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-                            No permissions match your search.
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      Object.entries(groupedPermissions).map(([resource, permissions]) => (
-                        <TableRow key={resource}>
-                          <TableCell>
-                            <Typography variant="subtitle1" sx={{ textTransform: 'capitalize' }}>
-                              {resource}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                              {permissions.map(permission => {
-                                const action = permission.split(':')[1];
-                                const isSelected = userPermissions.includes(permission);
-                                
-                                return (
-                                  <Chip 
-                                    key={permission} 
-                                    label={action}
-                                    color={isSelected ? 'primary' : 'default'}
-                                    variant={isSelected ? 'filled' : 'outlined'}
-                                    size="small"
-                                    sx={{ textTransform: 'capitalize' }}
-                                    onClick={() => handlePermissionToggle(permission)}
-                                  />
-                                );
-                              })}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </>
-        )}
+            ))}
+          </Select>
+        </FormControl>
       </Paper>
+      
+      {selectedUserId && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h5">User Permissions</Typography>
+            <Box>
+              <Button 
+                variant="outlined" 
+                startIcon={<RefreshIcon />} 
+                onClick={() => fetchUserPermissions(selectedUserId)}
+                disabled={loading}
+                sx={{ mr: 1 }}
+              >
+                Refresh
+              </Button>
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={<SaveIcon />} 
+                onClick={handleSavePermissions}
+                disabled={loading}
+              >
+                Save Changes
+              </Button>
+            </Box>
+          </Box>
+          
+          <TextField
+            fullWidth
+            label="Search Permissions"
+            variant="outlined"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            sx={{ mb: 3 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+          
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Resource</TableCell>
+                    <TableCell>Permissions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Object.entries(groupedPermissions).map(([resource, permissions]) => (
+                    <TableRow key={resource}>
+                      <TableCell>
+                        <Typography variant="subtitle1" sx={{ textTransform: 'capitalize' }}>
+                          {resource}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                          {permissions.map((permission) => {
+                            const isSelected = userPermissions.includes(permission);
+                            const [, action] = permission.split(':');
+                            
+                            return (
+                              <Chip 
+                                key={permission}
+                                label={action}
+                                onClick={() => handlePermissionToggle(permission)}
+                                color={isSelected ? "primary" : "default"}
+                                sx={{ 
+                                  textTransform: 'capitalize',
+                                  cursor: 'pointer',
+                                  opacity: isSelected ? 1 : 0.7,
+                                  transition: 'all 0.2s',
+                                  '&:hover': {
+                                    opacity: 1,
+                                  }
+                                }}
+                              />
+                            );
+                          })}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {Object.keys(groupedPermissions).length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={2}>
+                        <Typography align="center" sx={{ py: 2 }}>
+                          {searchQuery ? 'No permissions match your search' : 'No permissions available'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </>
+      )}
     </Box>
   );
-} 
+}
+
+// Wrapper component with Suspense
+export default function UserPermissionsManagement() {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>}>
+      <UserPermissionsContent />
+    </Suspense>
+  );
+}

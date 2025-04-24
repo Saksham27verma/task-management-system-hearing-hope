@@ -1,9 +1,8 @@
 import { ROLE_PERMISSIONS } from '@/types/permissions';
 import { Permission } from '@/types/permissions';
-import PermissionGroup from '@/models/Permission';
-import User from '@/models/User';
 import { JwtPayload } from 'jsonwebtoken';
-import connectToDatabase from '@/lib/db';
+import { connectToDatabase } from '@/lib/mongodb';
+import { ObjectId } from 'mongodb';
 
 /**
  * Check if a user has a specific permission by combining role-based and custom permissions
@@ -16,10 +15,11 @@ export async function checkPermission(
   requiredPermission: Permission
 ): Promise<boolean> {
   try {
-    await connectToDatabase();
+    const { db } = await connectToDatabase();
     
-    // Get the user without populating permission groups first to avoid schema errors
-    const user = await User.findById(userId).lean();
+    // Get the user
+    const userObjectId = new ObjectId(userId);
+    const user = await db.collection('users').findOne({ _id: userObjectId });
     
     if (!user) {
       console.error(`Permission check failed: User ${userId} not found`);
@@ -35,7 +35,7 @@ export async function checkPermission(
     console.log(`User ${userId} has custom permissions:`, customPermissions);
 
     // Check if the required permission is in role permissions or custom permissions
-    if (rolePermissions.includes(requiredPermission) || customPermissions.includes(requiredPermission)) {
+    if ((rolePermissions as readonly string[]).includes(requiredPermission) || customPermissions.includes(requiredPermission)) {
       console.log(`Permission check for ${requiredPermission}: GRANTED`);
       return true;
     }
@@ -44,15 +44,19 @@ export async function checkPermission(
     const groupPermissions: string[] = [];
     if (user.permissionGroups && user.permissionGroups.length > 0) {
       try {
-        // Try to populate permission groups (might fail if schema isn't registered)
-        const populatedUser = await User.findById(userId).populate('permissionGroups').lean();
+        // Get permission groups
+        const groupIds = user.permissionGroups.map((id: any) => 
+          typeof id === 'string' ? new ObjectId(id) : id
+        );
         
-        if (populatedUser && populatedUser.permissionGroups) {
-          // Flatten permissions from all groups
-          for (const group of populatedUser.permissionGroups) {
-            if (group.permissions) {
-              groupPermissions.push(...group.permissions);
-            }
+        const permissionGroups = await db.collection('permissionGroups')
+          .find({ _id: { $in: groupIds } })
+          .toArray();
+        
+        // Flatten permissions from all groups
+        for (const group of permissionGroups) {
+          if (group.permissions) {
+            groupPermissions.push(...group.permissions);
           }
         }
       } catch (groupError) {
@@ -85,15 +89,18 @@ export async function checkPermission(
  */
 export async function getUserPermissions(userId: string): Promise<string[]> {
   try {
-    await connectToDatabase();
+    const { db } = await connectToDatabase();
     
-    // Get the user without populating permission groups first
-    const user = await User.findById(userId).lean();
+    // Get the user
+    const userObjectId = new ObjectId(userId);
+    const user = await db.collection('users').findOne({ _id: userObjectId });
     
     if (!user) return [];
 
     // Start with the role-based permissions
-    const rolePermissions = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || [];
+    const rolePermissionSet = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || [];
+    // Convert readonly array to mutable array
+    const rolePermissions = [...rolePermissionSet];
 
     // Add any custom permissions assigned directly to the user
     const customPermissions = user.customPermissions || [];
@@ -102,15 +109,19 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     const groupPermissions: string[] = [];
     if (user.permissionGroups && user.permissionGroups.length > 0) {
       try {
-        // Try to populate permission groups (might fail if schema isn't registered)
-        const populatedUser = await User.findById(userId).populate('permissionGroups').lean();
+        // Get permission groups
+        const groupIds = user.permissionGroups.map((id: any) => 
+          typeof id === 'string' ? new ObjectId(id) : id
+        );
         
-        if (populatedUser && populatedUser.permissionGroups) {
-          // Flatten permissions from all groups
-          for (const group of populatedUser.permissionGroups) {
-            if (group.permissions) {
-              groupPermissions.push(...group.permissions);
-            }
+        const permissionGroups = await db.collection('permissionGroups')
+          .find({ _id: { $in: groupIds } })
+          .toArray();
+        
+        // Flatten permissions from all groups
+        for (const group of permissionGroups) {
+          if (group.permissions) {
+            groupPermissions.push(...group.permissions);
           }
         }
       } catch (groupError) {
@@ -125,9 +136,13 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     console.error('Error getting user permissions:', error);
     // Return just the role-based permissions if there's an error
     try {
-      const user = await User.findById(userId).lean();
+      const { db } = await connectToDatabase();
+      const userObjectId = new ObjectId(userId);
+      const user = await db.collection('users').findOne({ _id: userObjectId });
+      
       if (user && user.role) {
-        return ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || [];
+        const rolePermSet = ROLE_PERMISSIONS[user.role as keyof typeof ROLE_PERMISSIONS] || [];
+        return [...rolePermSet];
       }
     } catch (e) {
       console.error('Second error getting user permissions:', e);

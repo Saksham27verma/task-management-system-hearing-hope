@@ -12,7 +12,8 @@ import {
   MenuItem,
   SelectChangeEvent,
   Skeleton,
-  useTheme
+  useTheme,
+  Alert
 } from '@mui/material';
 import {
   Chart as ChartJS,
@@ -77,6 +78,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [data, setData] = useState<TaskData | null>(null);
   const [chartType, setChartType] = useState<string>('completion');
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     fetchAnalyticsData();
@@ -84,24 +86,34 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const queryParams = new URLSearchParams();
       if (period) queryParams.append('period', period);
       if (role) queryParams.append('role', role);
 
+      // Add a timestamp to prevent caching
+      queryParams.append('_t', Date.now().toString());
+
+      console.log('Fetching analytics data with params:', queryParams.toString());
       const response = await fetch(`/api/reports/analytics?${queryParams.toString()}`);
       
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics data');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to fetch analytics data: ${response.status}`);
       }
       
       const result = await response.json();
       if (result.success) {
+        console.log('Analytics data fetched successfully:', result);
         setData(result.data);
       } else {
+        setError(result.message || 'Error fetching analytics data');
         console.error('Error fetching analytics data:', result.message);
       }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error connecting to analytics service';
+      setError(errorMessage);
       console.error('Error fetching analytics data:', error);
     } finally {
       setLoading(false);
@@ -125,61 +137,54 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     infoLight: theme.palette.info.light,
   };
 
-  // For demo purposes if data is not available yet
-  const demoData: TaskData = {
-    totalTasks: 120,
-    completedTasks: 85,
-    pendingTasks: 20,
-    inProgressTasks: 15,
-    delayedTasks: 10,
-    completionRate: 70.8,
-    onTimeRate: 85.9,
-    tasksByPriority: {
-      'High': 45,
-      'Medium': 60,
-      'Low': 15
-    },
-    tasksByType: {
-      'Feature': 50,
-      'Bug': 30,
-      'Documentation': 15,
-      'Research': 25
-    },
-    taskCompletionByWeek: {
-      'Week 1': 15,
-      'Week 2': 20,
-      'Week 3': 25,
-      'Week 4': 25
-    },
-    taskCreationByWeek: {
-      'Week 1': 30,
-      'Week 2': 25,
-      'Week 3': 35,
-      'Week 4': 30
-    },
-    tasksByStatus: {
-      'Completed': 85,
-      'In Progress': 15,
-      'Pending': 20
-    },
-    avgCompletionTime: 3.5,
-    userProductivity: {
-      'User 1': { completed: 25, assigned: 30 },
-      'User 2': { completed: 20, assigned: 25 },
-      'User 3': { completed: 15, assigned: 20 },
-      'User 4': { completed: 25, assigned: 25 }
-    }
-  };
+  // If no data is available yet
+  if (loading) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Advanced Analytics Dashboard
+        </Typography>
+        <Grid container spacing={3}>
+          {[1, 2, 3, 4].map((item) => (
+            <Grid size={{ xs: 12, md: 6 }} key={item}>
+              <Paper sx={{ p: 2, height: '300px' }}>
+                <Skeleton variant="rectangular" height={250} />
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  }
 
-  // Use actual data or demo data if not available
-  const displayData = data || demoData;
+  if (error || !data) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Advanced Analytics Dashboard
+        </Typography>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error || 'Unable to load analytics data'}
+        </Alert>
+        <Grid container spacing={3}>
+          <Grid size={{ xs: 12 }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
+              <Typography>
+                Analytics data is unavailable. Please try again later.
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    );
+  }
 
   // Task Status Distribution Chart (Pie)
   const statusDistributionData = {
-    labels: Object.keys(displayData.tasksByStatus),
+    labels: Object.keys(data.tasksByStatus),
     datasets: [
       {
-        data: Object.values(displayData.tasksByStatus),
+        data: Object.values(data.tasksByStatus),
         backgroundColor: [
           chartColors.success,
           chartColors.warning,
@@ -193,11 +198,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // Task Completion Trend (Line)
   const taskCompletionTrendData = {
-    labels: Object.keys(displayData.taskCompletionByWeek),
+    labels: Object.keys(data.taskCompletionByWeek),
     datasets: [
       {
         label: 'Tasks Completed',
-        data: Object.values(displayData.taskCompletionByWeek),
+        data: Object.values(data.taskCompletionByWeek),
         borderColor: chartColors.primary,
         backgroundColor: `${chartColors.primary}33`, // With alpha
         fill: true,
@@ -205,7 +210,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       },
       {
         label: 'Tasks Created',
-        data: Object.values(displayData.taskCreationByWeek),
+        data: Object.values(data.taskCreationByWeek),
         borderColor: chartColors.secondary,
         backgroundColor: `${chartColors.secondary}33`, // With alpha
         fill: true,
@@ -216,11 +221,11 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // Task Priority Distribution (Bar)
   const priorityDistributionData = {
-    labels: Object.keys(displayData.tasksByPriority),
+    labels: Object.keys(data.tasksByPriority),
     datasets: [
       {
         label: 'Tasks by Priority',
-        data: Object.values(displayData.tasksByPriority),
+        data: Object.values(data.tasksByPriority),
         backgroundColor: [
           chartColors.error,
           chartColors.warning,
@@ -232,10 +237,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // Task Type Distribution (Doughnut)
   const typeDistributionData = {
-    labels: Object.keys(displayData.tasksByType),
+    labels: Object.keys(data.tasksByType),
     datasets: [
       {
-        data: Object.values(displayData.tasksByType),
+        data: Object.values(data.tasksByType),
         backgroundColor: [
           chartColors.primary,
           chartColors.error,
@@ -249,19 +254,19 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   // User Productivity Chart (Bar)
   const userProductivityData = {
-    labels: Object.keys(displayData.userProductivity),
+    labels: Object.keys(data.userProductivity),
     datasets: [
       {
         label: 'Completed Tasks',
-        data: Object.keys(displayData.userProductivity).map(
-          (user) => displayData.userProductivity[user].completed
+        data: Object.keys(data.userProductivity).map(
+          (user) => data.userProductivity[user].completed
         ),
         backgroundColor: chartColors.success,
       },
       {
         label: 'Assigned Tasks',
-        data: Object.keys(displayData.userProductivity).map(
-          (user) => displayData.userProductivity[user].assigned
+        data: Object.keys(data.userProductivity).map(
+          (user) => data.userProductivity[user].assigned
         ),
         backgroundColor: chartColors.info,
       },
@@ -288,28 +293,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     },
   };
 
-  const handleChartTypeChange = (event: any) => {
+  const handleChartTypeChange = (event: SelectChangeEvent) => {
     setChartType(event.target.value);
   };
-
-  if (loading) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Advanced Analytics Dashboard
-        </Typography>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4].map((item) => (
-            <Grid item xs={12} md={6} key={item}>
-              <Paper sx={{ p: 2, height: '300px' }}>
-                <Skeleton variant="rectangular" height={250} />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -319,7 +305,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       
       <Box sx={{ mb: 4 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper
               elevation={2}
               sx={{
@@ -329,12 +315,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 borderLeft: `4px solid ${chartColors.primary}`,
               }}
             >
-              <Typography variant="h6">{displayData.totalTasks}</Typography>
+              <Typography variant="h6">{data.totalTasks}</Typography>
               <Typography variant="body2">Total Tasks</Typography>
             </Paper>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper
               elevation={2}
               sx={{
@@ -344,12 +330,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 borderLeft: `4px solid ${chartColors.success}`,
               }}
             >
-              <Typography variant="h6">{displayData.completedTasks}</Typography>
+              <Typography variant="h6">{data.completedTasks}</Typography>
               <Typography variant="body2">Completed Tasks</Typography>
             </Paper>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper
               elevation={2}
               sx={{
@@ -359,12 +345,12 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 borderLeft: `4px solid ${chartColors.warning}`,
               }}
             >
-              <Typography variant="h6">{displayData.completionRate.toFixed(1)}%</Typography>
+              <Typography variant="h6">{data.completionRate.toFixed(1)}%</Typography>
               <Typography variant="body2">Completion Rate</Typography>
             </Paper>
           </Grid>
           
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper
               elevation={2}
               sx={{
@@ -374,7 +360,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
                 borderLeft: `4px solid ${chartColors.info}`,
               }}
             >
-              <Typography variant="h6">{displayData.onTimeRate.toFixed(1)}%</Typography>
+              <Typography variant="h6">{data.onTimeRate.toFixed(1)}%</Typography>
               <Typography variant="body2">On-Time Rate</Typography>
             </Paper>
           </Grid>
@@ -402,7 +388,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       
       <Grid container spacing={3}>
         {chartType === 'completion' && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Paper sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" gutterBottom>
                 Task Completion Trend
@@ -415,7 +401,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         )}
         
         {chartType === 'status' && (
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" gutterBottom>
                 Task Status Distribution
@@ -428,7 +414,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         )}
         
         {chartType === 'priority' && (
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" gutterBottom>
                 Task Priority Distribution
@@ -441,7 +427,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         )}
         
         {chartType === 'type' && (
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" gutterBottom>
                 Task Type Distribution
@@ -454,7 +440,7 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
         )}
         
         {chartType === 'productivity' && (
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Paper sx={{ p: 2, height: '400px' }}>
               <Typography variant="h6" gutterBottom>
                 User Productivity

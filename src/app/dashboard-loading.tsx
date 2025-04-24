@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { useState, useEffect, createContext, useContext, ReactNode, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import LoadingScreen from '@/components/common/LoadingScreen';
 
@@ -27,7 +27,8 @@ interface LoadingOptions {
 
 export const useLoading = () => useContext(LoadingContext);
 
-export function DashboardLoadingProvider({ children }: { children: ReactNode }) {
+// Client component that uses hooks
+function LoadingProviderClient({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingOptions, setLoadingOptions] = useState<LoadingOptions>({
     message: "Loading page...",
@@ -118,5 +119,14 @@ export function DashboardLoadingProvider({ children }: { children: ReactNode }) 
       )}
       {children}
     </LoadingContext.Provider>
+  );
+}
+
+// Main component with Suspense boundary
+export function DashboardLoadingProvider({ children }: { children: ReactNode }) {
+  return (
+    <Suspense fallback={<LoadingScreen fullScreen showProgress />}>
+      <LoadingProviderClient>{children}</LoadingProviderClient>
+    </Suspense>
   );
 } 

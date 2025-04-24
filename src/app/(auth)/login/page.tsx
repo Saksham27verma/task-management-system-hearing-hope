@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import {
   Box,
   Container,
@@ -21,7 +21,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import Image from 'next/image';
 import LoadingScreen from '@/components/common/LoadingScreen';
 
-export default function LoginPage() {
+// Main login form component
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState('');
@@ -252,6 +253,7 @@ export default function LoginPage() {
                         aria-label="toggle password visibility"
                         onClick={handleClickShowPassword}
                         edge="end"
+                        disabled={isLoading}
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
                       </IconButton>
@@ -264,7 +266,7 @@ export default function LoginPage() {
                       borderColor: theme.palette.primary.main,
                     },
                   },
-                  mb: 2,
+                  mb: 3,
                 }}
               />
               
@@ -272,52 +274,45 @@ export default function LoginPage() {
                 type="submit"
                 fullWidth
                 variant="contained"
+                color="primary"
+                size="large"
+                disabled={isLoading}
                 sx={{ 
-                  mt: 2, 
-                  mb: 3, 
                   py: 1.5,
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 10px rgba(238, 100, 23, 0.3)',
+                  mb: 2,
+                  fontSize: '1rem',
+                  fontWeight: 600,
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    boxShadow: '0 6px 15px rgba(238, 100, 23, 0.4)',
-                    transform: 'translateY(-2px)'
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
                   }
                 }}
-                disabled={isLoading}
               >
-                {isLoading ? 'Signing In...' : 'Sign In'}
+                Sign In
               </Button>
               
-              <Box sx={{ textAlign: 'center', width: '100%' }}>
-                <Typography 
-                  variant="body2" 
-                  color="text.secondary"
-                  sx={{
-                    opacity: 0.8,
-                    fontSize: '0.9rem'
-                  }}
-                >
-                  Contact your administrator if you have trouble logging in
-                </Typography>
-              </Box>
+              <Typography 
+                variant="body2" 
+                color="textSecondary"
+                align="center"
+                sx={{ mt: 2 }}
+              >
+                Forgot your password? Please contact your administrator.
+              </Typography>
             </Box>
-            
-            <Typography 
-              variant="body2" 
-              color="text.secondary" 
-              sx={{ 
-                mt: 5,
-                opacity: 0.7,
-                fontSize: '0.8rem'
-              }}
-            >
-              &copy; {new Date().getFullYear()} Hearing Hope. All rights reserved.
-            </Typography>
           </Paper>
         </Fade>
       </Container>
     </Box>
+  );
+}
+
+// Main page component - wraps the LoginForm with Suspense
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 } 

@@ -143,9 +143,9 @@ export default function EmployeeDashboard() {
         </Typography>
       </Box>
       
-      <Grid container spacing={3}>
+      <Box sx={{ display: 'grid', gap: 3 }}>
         {/* Quick Action Buttons */}
-        <Grid item xs={12} component="div">
+        <Box>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Quick Actions</Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
@@ -178,10 +178,11 @@ export default function EmployeeDashboard() {
               </Button>
             </Box>
           </Paper>
-        </Grid>
+        </Box>
         
-        {/* Assigned Tasks */}
-        <Grid item xs={12} md={8} component="div">
+        {/* Assigned Tasks and Notifications section */}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
+          {/* Assigned Tasks */}
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6">My Tasks</Typography>
@@ -269,10 +270,8 @@ export default function EmployeeDashboard() {
               </Box>
             )}
           </Paper>
-        </Grid>
-        
-        {/* Notifications and Stats */}
-        <Grid item xs={12} md={4} component="div">
+          
+          {/* Notifications and Stats */}
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Typography variant="h6" sx={{ mb: 2 }}>Notifications</Typography>
             <Divider sx={{ mb: 2 }} />
@@ -305,8 +304,8 @@ export default function EmployeeDashboard() {
               </Box>
             )}
           </Paper>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
     </Container>
   );
 } 

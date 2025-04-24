@@ -411,31 +411,37 @@ export default function CalendarPage() {
     return (
       <Box>
         {/* Days of week header */}
-        <Grid container sx={{ borderBottom: '1px solid #e0e0e0', mb: 1 }}>
+        <Box sx={{ display: 'flex', borderBottom: '1px solid #e0e0e0', mb: 1 }}>
           {daysOfWeek.map(day => (
-            <Grid key={day} sx={{ 
-              textAlign: 'center', 
-              py: 1.5, 
-              fontWeight: 600,
-              color: 'text.secondary',
-              backgroundColor: 'grey.50',
-              width: '14.28%' // 1/7 of the container
-            }}>
+            <Box 
+              key={day} 
+              sx={{ 
+                textAlign: 'center', 
+                py: 1.5, 
+                fontWeight: 600,
+                color: 'text.secondary',
+                backgroundColor: 'grey.50',
+                width: '14.28%' // 1/7 of the container
+              }}
+            >
               {day}
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
         
         {/* Calendar weeks */}
         {weeks.map((week, weekIndex) => (
-          <Grid container key={`week-${weekIndex}`} sx={{ mb: 1 }}>
+          <Box 
+            key={`week-${weekIndex}`} 
+            sx={{ display: 'flex', mb: 1 }}
+          >
             {week.map(day => {
               const tasksForDay = getTasksForDay(day);
               const isCurrentMonth = isSameMonth(day, currentDate);
               const dayNumber = format(day, 'd');
               
               return (
-                <Grid 
+                <Box 
                   key={day.toString()} 
                   sx={{ 
                     height: '130px',
@@ -546,10 +552,10 @@ export default function CalendarPage() {
                       )}
                     </Box>
                   )}
-                </Grid>
+                </Box>
               );
             })}
-          </Grid>
+          </Box>
         ))}
       </Box>
     );
@@ -562,9 +568,9 @@ export default function CalendarPage() {
     const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
     
     return (
-      <Grid container spacing={2}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {days.map(day => (
-          <Grid key={day.toString()} sx={{ width: '100%' }}>
+          <Box key={day.toString()} sx={{ width: '100%' }}>
             <Paper sx={{ p: 2, cursor: 'pointer' }} onClick={() => handleDayClick(day)}>
               <Box sx={{ 
                 display: 'flex', 
@@ -606,7 +612,7 @@ export default function CalendarPage() {
                       sx={{ 
                         display: 'flex',
                         p: 1,
-                        mb: 1,
+                        mb: 1, 
                         borderLeft: `4px solid ${getStatusColor(task.status)}`,
                         backgroundColor: '#f9f9f9',
                         borderRadius: 1
@@ -634,9 +640,9 @@ export default function CalendarPage() {
                 )}
               </Box>
             </Paper>
-          </Grid>
+          </Box>
         ))}
-      </Grid>
+      </Box>
     );
   };
   

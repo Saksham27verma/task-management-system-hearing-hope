@@ -81,37 +81,6 @@ interface Meeting {
   meetingUrl: string;
 }
 
-// Mock data for meetings
-const mockMeetings: Meeting[] = [
-  {
-    id: 'meet-1',
-    title: 'Weekly Team Sync',
-    startTime: '2023-06-15T10:00:00',
-    duration: 60,
-    organizer: 'John Doe',
-    status: 'upcoming',
-    meetingUrl: 'https://meet.google.com/abc-defg-hij',
-  },
-  {
-    id: 'meet-2',
-    title: 'Client Presentation',
-    startTime: '2023-06-14T14:30:00',
-    duration: 45,
-    organizer: 'Jane Smith',
-    status: 'live',
-    meetingUrl: 'https://meet.google.com/klm-nopq-rst',
-  },
-  {
-    id: 'meet-3',
-    title: 'Project Planning',
-    startTime: '2023-06-12T11:00:00',
-    duration: 90,
-    organizer: 'John Doe',
-    status: 'completed',
-    meetingUrl: 'https://meet.google.com/uvw-xyz-123',
-  },
-];
-
 // Function to create a "Now" meeting
 const createInstantMeeting = async (
   gapiClient: any, 
@@ -161,7 +130,7 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
   const { user } = useAuth();
   const [openDialog, setOpenDialog] = useState(false);
   const [meetingTitle, setMeetingTitle] = useState('');
-  const [meetings, setMeetings] = useState<Meeting[]>(mockMeetings);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [copyStatus, setCopyStatus] = useState<{[key: string]: boolean}>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('all');
@@ -289,67 +258,78 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
             .then(() => {
               window.gapi.client.setToken(null);
               setIsAuthenticated(false);
-              setMeetings(mockMeetings);
+              setMeetings([]);
             })
             .catch(() => {
               // Handle error silently
               window.gapi.client.setToken(null);
               setIsAuthenticated(false);
-              setMeetings(mockMeetings);
+              setMeetings([]);
             });
         }
       }
     }
   };
 
+  // Get meeting status based on start and end time
+  const getEventStatus = (startDateTime: string, endDateTime: string): 'upcoming' | 'live' | 'completed' => {
+    const now = new Date();
+    const startDate = new Date(startDateTime);
+    const endDate = new Date(endDateTime);
+    
+    if (now < startDate) return 'upcoming';
+    if (now > endDate) return 'completed';
+    return 'live';
+  };
+
   // Fetch meetings from Google Calendar API
   const fetchMeetings = async () => {
-    if (!window.gapi?.client?.calendar || !isAuthenticated) return;
-    
     setIsLoading(true);
     try {
-      // Get events from primary calendar with conferenceData
-      const response = await window.gapi.client.calendar.events.list({
-        'calendarId': 'primary',
-        'timeMin': (new Date()).toISOString(),
-        'showDeleted': false,
-        'singleEvents': true,
-        'maxResults': 10,
-        'orderBy': 'startTime',
-        'conferenceDataVersion': 1
-      });
-
-      if (response.result.items && response.result.items.length > 0) {
-        // Filter only events with Google Meet links
-        // The Google Calendar API returns all events, so we need to filter for ones with Meet conferencing
-        const meetEvents = response.result.items
-          .filter(event => 
-            event.conferenceData && 
-            event.conferenceData.conferenceSolution && 
-            event.conferenceData.conferenceSolution.name?.toLowerCase().includes('meet')
-          )
-          .map(event => ({
-            id: event.id,
-            title: event.summary || 'Untitled Meeting',
-            startTime: event.start?.dateTime || event.start?.date || new Date().toISOString(),
-            duration: event.end && event.start ? 
-              Math.round((new Date(event.end.dateTime!).getTime() - new Date(event.start.dateTime!).getTime()) / (1000 * 60)) : 60,
-            organizer: event.organizer?.email || user?.email || 'Unknown',
-            status: new Date(event.start?.dateTime!) > new Date() ? 'upcoming' : 
-                     new Date(event.end?.dateTime!) < new Date() ? 'completed' : 'live',
-            meetingUrl: event.conferenceData?.entryPoints?.find(ep => ep.entryPointType === 'video')?.uri || 
-                       event.hangoutLink || ''
-          }));
-        
-        setMeetings(meetEvents);
-      } else {
-        setMeetings([]);
+      if (!window.gapi.client.calendar) {
+        throw new Error('Google Calendar API not initialized');
       }
+
+      // Get meetings from the calendar API
+      const now = new Date();
+      const timeMin = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString();
+      const timeMax = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30).toISOString();
+        
+      const response = await window.gapi.client.calendar.events.list({
+        calendarId: 'primary',
+        timeMin: timeMin,
+        timeMax: timeMax,
+        showDeleted: false,
+        singleEvents: true,
+        orderBy: 'startTime',
+        // Only fetch events with conference data
+        q: 'hangoutLink'
+      });
+        
+      const events = response.result.items;
+      const googleMeetings = events
+        .filter(event => event.conferenceData?.conferenceId)
+        .map(event => ({
+          id: event.id,
+          title: event.summary || 'Untitled Meeting',
+          startTime: event.start.dateTime || event.start.date,
+          duration: event.end ? 
+            (new Date(event.end.dateTime).getTime() - new Date(event.start.dateTime).getTime()) / 60000 : 
+            60,
+          organizer: event.organizer?.email || 'Unknown',
+          status: getEventStatus(event.start.dateTime, event.end.dateTime),
+          meetingUrl: event.conferenceData?.entryPoints[0]?.uri || event.hangoutLink,
+        }));
+        
+      console.log('Fetched meetings:', googleMeetings.length);
+      setMeetings(googleMeetings);
     } catch (error) {
+      console.error('Error fetching meetings:', error);
       setNotification({
-        message: 'Failed to fetch meetings from Google Calendar',
+        message: `Error fetching meetings: ${(error as any)?.message || 'Unknown error'}`,
         type: 'error'
       });
+      setMeetings([]);
     } finally {
       setIsLoading(false);
     }
@@ -544,17 +524,24 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
     setTimeout(() => setCopied(null), 2000);
   };
 
-  // Handle delete meeting
+  // Handle deleting a meeting
   const handleDeleteMeeting = async (id: string) => {
-    if (isAuthenticated && window.gapi) {
+    if (!window.confirm('Are you sure you want to delete this meeting?')) {
+      return;
+    }
+    
+    if (isAuthenticated && window.gapi?.client?.calendar) {
       setIsLoading(true);
+      
       try {
         await window.gapi.client.calendar.events.delete({
           calendarId: 'primary',
           eventId: id
         });
         
+        // Remove from local state
         setMeetings(meetings.filter(meeting => meeting.id !== id));
+        
         setNotification({
           message: 'Meeting deleted successfully',
           type: 'success'
@@ -569,8 +556,10 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
         setIsLoading(false);
       }
     } else {
-      // For mock data or when not authenticated
-      setMeetings(meetings.filter(meeting => meeting.id !== id));
+      setNotification({
+        message: 'You must be authenticated to delete meetings',
+        type: 'error'
+      });
     }
   };
 
