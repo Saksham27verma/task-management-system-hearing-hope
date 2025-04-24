@@ -408,4 +408,59 @@ a, button, .MuiButton-root, .MuiIconButton-root,
 
 [data-theme="dark"] .calendar-month-day-outside {
   opacity: 0.5 !important;
+}
+
+/* Login page enhancements */
+.login-paper {
+  transform: translateY(0);
+  transition: transform 0.3s ease-in-out;
+}
+
+.login-paper:hover {
+  transform: translateY(-5px);
+}
+
+.login-logo-container {
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.login-heading {
+  color: var(--primary-color);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.login-input {
+  margin-bottom: 1rem;
+}
+
+.login-button {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 10px 0;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+}
+
+.login-button:hover {
+  background-color: var(--primary-color-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(238, 100, 23, 0.2);
+}
+
+.login-forgot {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+@media (max-width: 600px) {
+  .login-paper {
+    padding: 1.5rem !important;
+    margin: 0 1rem !important;
+  }
 } 

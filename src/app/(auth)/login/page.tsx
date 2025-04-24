@@ -110,10 +110,11 @@ function LoginForm() {
         />
       )}
       
-      <Container component="main" maxWidth="sm">
+      <Container component="main" maxWidth="xs">
         <Fade in={fadeIn} timeout={800}>
           <Paper 
             elevation={6} 
+            className="login-paper"
             sx={{ 
               padding: { xs: 3, sm: 4 }, 
               display: 'flex', 
@@ -124,6 +125,8 @@ function LoginForm() {
               boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
               overflow: 'hidden',
               position: 'relative',
+              maxWidth: '400px',
+              mx: 'auto'
             }}
           >
             {isLoading && (
@@ -138,19 +141,22 @@ function LoginForm() {
               />
             )}
             
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              mb: 3, 
-              mt: 2,
-              transform: isMobile ? 'scale(0.9)' : 'scale(1)',
-              transition: 'transform 0.3s ease',
-            }}>
+            <Box 
+              className="login-logo-container"
+              sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                mb: 2, 
+                mt: 1,
+                transform: isMobile ? 'scale(0.9)' : 'scale(1)',
+                transition: 'transform 0.3s ease',
+              }}
+            >
               <Image 
                 src="/images/logohope.svg" 
                 alt="Hearing Hope Logo" 
-                width={isMobile ? 150 : 180} 
-                height={isMobile ? 60 : 70} 
+                width={isMobile ? 120 : 140} 
+                height={isMobile ? 50 : 55} 
                 style={{ 
                   objectFit: 'contain',
                   transition: 'all 0.3s ease', 
@@ -162,11 +168,13 @@ function LoginForm() {
             <Typography 
               component="h1" 
               variant={isMobile ? "h5" : "h4"} 
+              className="login-heading"
               sx={{ 
-                mb: 3, 
+                mb: 2, 
                 color: 'primary.main', 
                 fontWeight: 'bold',
                 textAlign: 'center',
+                fontSize: { xs: '1.5rem', sm: '1.75rem' }
               }}
             >
               Task Management System
@@ -197,6 +205,7 @@ function LoginForm() {
               }}
             >
               <TextField
+                className="login-input"
                 margin="normal"
                 required
                 fullWidth
@@ -228,6 +237,7 @@ function LoginForm() {
               />
               
               <TextField
+                className="login-input"
                 margin="normal"
                 required
                 fullWidth
@@ -266,41 +276,47 @@ function LoginForm() {
                       borderColor: theme.palette.primary.main,
                     },
                   },
-                  mb: 3,
                 }}
               />
               
               <Button
+                className="login-button"
                 type="submit"
                 fullWidth
                 variant="contained"
-                color="primary"
-                size="large"
-                disabled={isLoading}
                 sx={{ 
-                  py: 1.5,
+                  mt: 2, 
                   mb: 2,
+                  py: 1.5,
+                  bgcolor: theme.palette.primary.main,
+                  color: theme.palette.primary.contrastText,
                   fontSize: '1rem',
-                  fontWeight: 600,
-                  transition: 'all 0.3s ease',
+                  transition: 'all 0.2s',
                   '&:hover': {
+                    bgcolor: theme.palette.primary.dark,
                     transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-                  }
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  },
                 }}
+                disabled={isLoading}
               >
                 Sign In
               </Button>
-              
-              <Typography 
-                variant="body2" 
-                color="textSecondary"
-                align="center"
-                sx={{ mt: 2 }}
-              >
-                Forgot your password? Please contact your administrator.
-              </Typography>
             </Box>
+            
+            <Typography 
+              variant="body2" 
+              color="text.secondary" 
+              align="center" 
+              className="login-forgot"
+              sx={{ 
+                mt: 1,
+                fontSize: '0.875rem',
+                opacity: 0.8
+              }}
+            >
+              Forgot your password? Please contact your administrator.
+            </Typography>
           </Paper>
         </Fade>
       </Container>
