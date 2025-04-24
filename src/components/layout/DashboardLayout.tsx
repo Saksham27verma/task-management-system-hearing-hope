@@ -1,4 +1,4 @@
-import React, { useState, ReactNode } from 'react';
+import React, { useState, ReactNode, useEffect } from 'react';
 import {
   AppBar,
   Box,
@@ -18,6 +18,7 @@ import {
   Menu,
   MenuItem,
   Tooltip,
+  useTheme,
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -35,7 +36,6 @@ import {
   Brightness7 as LightModeIcon,
   Videocam as VideoIcon,
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,7 +51,8 @@ const WalkthroughTour = dynamic(
   { ssr: false }
 );
 
-const drawerWidth = 280;
+// Responsive drawer width
+const getDrawerWidth = (isMobile: boolean) => isMobile ? 240 : 280;
 
 interface NavItem {
   label: string;
@@ -62,14 +63,23 @@ interface NavItem {
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery('(max-width:360px)');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout, isAuthenticated } = useAuth();
   const { mode, toggleTheme } = useThemeMode();
+  const drawerWidth = getDrawerWidth(isMobile);
+  
+  // Close drawer when navigating on mobile
+  useEffect(() => {
+    if (isMobile && mobileOpen) {
+      setMobileOpen(false);
+    }
+  }, [pathname, isMobile]);
   
   // Handle profile menu
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -181,7 +191,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <Toolbar sx={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        padding: '16px',
+        padding: isMobile ? '8px' : '16px',
         backgroundColor: theme.palette.primary.main,
         color: theme.palette.primary.contrastText
       }}>
@@ -197,73 +207,85 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Image 
             src="/images/logohope.svg" 
             alt="Hearing Hope Logo" 
-            width={150} 
-            height={50} 
-            style={{ 
-              objectFit: 'contain',
-              filter: 'brightness(0) invert(1)' // Make logo white
-            }} 
+            width={isMobile ? 120 : 150} 
+            height={isMobile ? 40 : 50}
+            style={{ objectFit: 'contain' }}
           />
         </Box>
       </Toolbar>
       <Divider />
-      <List>
-        {filteredNavItems.map((item) => (
-          <Permission 
-            key={item.href}
-            permissions={item.permissions}
-            roles={item.roles}
-            require="any"
+      
+      {/* User profile section */}
+      {user && (
+        <Box 
+          sx={{ 
+            py: 2, 
+            px: 2, 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center',
+            borderBottom: `1px solid ${theme.palette.divider}`
+          }}
+        >
+          <Avatar 
+            sx={{ 
+              width: 60, 
+              height: 60, 
+              bgcolor: theme.palette.primary.main,
+              mb: 1
+            }}
           >
+            {user.name?.charAt(0).toUpperCase()}
+          </Avatar>
+          <Typography variant="subtitle1" fontWeight="bold" noWrap>
+            {user.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" noWrap>
+            {user.role}
+          </Typography>
+        </Box>
+      )}
+      
+      {/* Navigation items */}
+      <List sx={{ py: 0 }}>
+        {filteredNavItems.map((item) => (
+          <Permission key={item.href} permissions={item.permissions} role={item.roles}>
             <ListItem disablePadding>
-              <Tooltip 
-                title={item.label} 
-                placement="right"
-                disableHoverListener={!isMobile}
+              <ListItemButton
+                component={Link}
+                href={item.href}
+                selected={isActive(item.href)}
+                sx={{
+                  py: 1.5,
+                  color: isActive(item.href) 
+                    ? theme.palette.primary.main 
+                    : theme.palette.text.primary,
+                  '&.Mui-selected': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    borderRight: `3px solid ${theme.palette.primary.main}`,
+                    '&:hover': {
+                      bgcolor: alpha(theme.palette.primary.main, 0.15),
+                    }
+                  },
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  }
+                }}
               >
-                <Link href={item.href} style={{ textDecoration: 'none', width: '100%', color: 'inherit' }}>
-                  <ListItemButton 
-                    selected={isActive(item.href)}
-                    sx={{
-                      transition: 'all 0.2s ease',
-                      borderRadius: '4px',
-                      mx: 1,
-                      my: 0.5,
-                      '&:hover': {
-                        backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(255, 255, 255, 0.08)' 
-                          : 'rgba(0, 0, 0, 0.04)',
-                        transform: 'translateX(4px)'
-                      },
-                      '&.Mui-selected': {
-                        backgroundColor: theme.palette.mode === 'dark' 
-                          ? 'rgba(238, 100, 23, 0.2)' 
-                          : 'rgba(238, 100, 23, 0.1)',
-                        borderLeft: `3px solid ${theme.palette.primary.main}`,
-                        '&:hover': {
-                          backgroundColor: theme.palette.mode === 'dark' 
-                            ? 'rgba(238, 100, 23, 0.3)' 
-                            : 'rgba(238, 100, 23, 0.15)',
-                        }
-                      }
-                    }}
-                  >
-                    <ListItemIcon sx={{ 
-                      color: isActive(item.href) ? theme.palette.primary.main : 'inherit',
-                      minWidth: { xs: 36, sm: 42 }
-                    }}>
-                      {item.icon}
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={item.label} 
-                      primaryTypographyProps={{
-                        fontSize: { xs: '0.9rem', sm: '1rem' },
-                        fontWeight: isActive(item.href) ? 'medium' : 'normal'
-                      }}
-                    />
-                  </ListItemButton>
-                </Link>
-              </Tooltip>
+                <ListItemIcon 
+                  sx={{ 
+                    color: isActive(item.href) 
+                      ? theme.palette.primary.main 
+                      : 'inherit',
+                    minWidth: isMobile ? 40 : 48
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText 
+                  primary={<Typography variant="body1" fontSize={isMobile ? '0.9rem' : '1rem'}>{item.label}</Typography>} 
+                />
+              </ListItemButton>
             </ListItem>
           </Permission>
         ))}
@@ -271,168 +293,154 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     </div>
   );
 
-  // If not authenticated, return null or redirect
-  if (!isAuthenticated) {
-    return null;
-  }
-
+  // Main content
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', overflow: 'hidden', width: '100%', maxWidth: '100vw' }}>
       <CssBaseline />
+      
+      {/* App bar */}
       <AppBar
         position="fixed"
         sx={{
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
-          bgcolor: 'background.paper',
-          color: 'text.primary',
           boxShadow: 1,
-          borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Toolbar sx={{ justifyContent: 'space-between' }}>
+        <Toolbar sx={{ justifyContent: 'space-between', height: { xs: 56, sm: 64 }, px: { xs: 2, sm: 3 } }}>
           <IconButton
             color="inherit"
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ 
-              display: { md: 'none' },
-              transition: 'transform 0.2s',
-              '&:hover': { transform: 'rotate(180deg)' }
-            }}
+            sx={{ mr: 2, display: { md: 'none' } }}
           >
             <MenuIcon />
           </IconButton>
           
-          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center' }}>
-            <Typography 
-              variant="h6" 
-              color="textSecondary" 
-              sx={{ 
-                fontWeight: 'medium',
-                opacity: 0.8
-              }}
-            >
-              {/* Dynamic title based on current page */}
-              {pathname && pathname.split('/').pop()?.replace(/-/g, ' ').replace(/^\w/, c => c.toUpperCase())}
-            </Typography>
-          </Box>
+          <Typography
+            variant={isSmallMobile ? "subtitle1" : "h6"}
+            noWrap
+            component="div"
+            sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }}
+          >
+            {(() => {
+              // Determine current page title
+              if (pathname?.includes('/dashboard/admin')) return 'Admin Dashboard';
+              if (pathname?.includes('/dashboard/manager')) return 'Manager Dashboard';
+              if (pathname?.includes('/dashboard/employee')) return 'Employee Dashboard';
+              if (pathname?.includes('/dashboard/tasks')) return 'Tasks';
+              if (pathname?.includes('/dashboard/reports')) return 'Reports';
+              if (pathname?.includes('/dashboard/calendar')) return 'Calendar';
+              if (pathname?.includes('/dashboard/notices')) return 'Notice Board';
+              if (pathname?.includes('/dashboard/messages')) return 'Messages';
+              if (pathname?.includes('/dashboard/meetings')) return 'Meetings';
+              if (pathname?.includes('/dashboard/directory')) return 'Phone Directory';
+              if (pathname?.includes('/dashboard/company')) return 'Company Information';
+              if (pathname?.includes('/dashboard/profile')) return 'User Profile';
+              return 'Dashboard';
+            })()}
+          </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {/* Dark mode toggle */}
-            <Tooltip title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}>
-              <IconButton
-                onClick={toggleTheme}
-                color="inherit"
-                aria-label="toggle dark mode"
-                sx={{ 
-                  mr: { xs: 1, sm: 2 },
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    transform: 'rotate(30deg)',
-                    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)'
-                  }
-                }}
-              >
-                {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            {/* Theme toggle */}
+            <Tooltip title={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}>
+              <IconButton color="inherit" onClick={toggleTheme} size={isMobile ? "small" : "medium"}>
+                {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
             </Tooltip>
             
-            {/* Add Notification Bell here */}
+            {/* Notifications */}
             <NotificationBell />
             
-            <Typography 
-              variant="subtitle1" 
-              sx={{ 
-                display: { xs: 'none', sm: 'block' }, 
-                mr: 2,
-                fontWeight: 'medium'
-              }}
-            >
-              {user?.name}
-            </Typography>
+            {/* User profile menu */}
             <IconButton 
-              size="large" 
-              edge="end" 
               onClick={handleMenuOpen}
-              color="inherit"
-              sx={{
-                transition: 'transform 0.2s ease',
-                '&:hover': {
-                  transform: 'scale(1.1)'
-                }
+              size={isMobile ? "small" : "medium"}
+              sx={{ 
+                p: 0.5,
+                ml: { xs: 0.5, sm: 1 },
+                border: `2px solid ${theme.palette.primary.contrastText}`,
               }}
             >
               <Avatar 
                 sx={{ 
-                  bgcolor: theme.palette.secondary.main,
-                  width: { xs: 36, sm: 40 },
-                  height: { xs: 36, sm: 40 },
-                  boxShadow: 2
+                  width: { xs: 30, sm: 36 }, 
+                  height: { xs: 30, sm: 36 }, 
+                  bgcolor: theme.palette.primary.light 
                 }}
               >
-                {user?.name.charAt(0)}
+                {user?.name?.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>
+            
             <Menu
+              id="profile-menu"
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
-              anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'right',
+              PaperProps={{
+                sx: {
+                  width: 200,
+                  mt: 1.5,
+                }
               }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-              }}
+              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
             >
-              <MenuItem onClick={handleProfileClick}>
+              <MenuItem onClick={handleProfileClick} sx={{ py: 1.5 }}>
                 <ListItemIcon>
                   <ProfileIcon fontSize="small" />
                 </ListItemIcon>
-                Profile
+                <ListItemText>Profile</ListItemText>
               </MenuItem>
-              <MenuItem onClick={handleLogout}>
+              
+              <Divider />
+              
+              <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                Logout
+                <ListItemText>Logout</ListItemText>
               </MenuItem>
             </Menu>
           </Box>
         </Toolbar>
       </AppBar>
+      
+      {/* Navigation drawer - Mobile */}
       <Box
         component="nav"
         sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-        aria-label="sidebar navigation"
       >
         <Drawer
           variant="temporary"
           open={mobileOpen}
           onClose={handleDrawerToggle}
           ModalProps={{
-            keepMounted: true, // Better mobile performance
+            keepMounted: true, // Better open performance on mobile
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: drawerWidth 
+              width: drawerWidth,
+              overflowX: 'hidden',
             },
           }}
         >
           {drawer}
         </Drawer>
+        
+        {/* Navigation drawer - Desktop */}
         <Drawer
           variant="permanent"
           sx={{
             display: { xs: 'none', md: 'block' },
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
-              width: drawerWidth 
+              width: drawerWidth,
+              overflowX: 'hidden',
             },
           }}
           open
@@ -440,22 +448,36 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           {drawer}
         </Drawer>
       </Box>
+      
+      {/* Main content */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { md: `calc(100% - ${drawerWidth}px)` },
-          minHeight: '100vh',
-          backgroundColor: 'background.default'
+          width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
+          height: '100vh',
+          overflow: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         <Toolbar />
-        {children}
-        
-        {/* Add the walkthrough tour */}
-        <WalkthroughTour />
+        <Box 
+          sx={{ 
+            p: { xs: 2, sm: 3 }, 
+            flexGrow: 1,
+            maxWidth: '100%',
+            width: '100%',
+            overflow: 'hidden',
+          }}
+          className="dashboard-content"
+        >
+          {children}
+        </Box>
       </Box>
+      
+      {/* Walkthrough tour */}
+      <WalkthroughTour />
     </Box>
   );
-} 
+}

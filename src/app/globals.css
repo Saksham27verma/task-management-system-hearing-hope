@@ -11,24 +11,44 @@
   --secondary-color: #4fc3a1;
 }
 
-/* Fix for mobile responsiveness - prevent horizontal overflow */
+/* More aggressive fix for mobile responsiveness - prevent horizontal overflow */
 html, body {
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
   margin: 0;
   padding: 0;
   -webkit-text-size-adjust: 100%;
+  position: relative;
 }
 
 /* Fix for content width issues on mobile */
 * {
   box-sizing: border-box;
+  max-width: 100%;
+}
+
+/* Force all containers to respect viewport width */
+.MuiContainer-root,
+.MuiBox-root,
+.MuiPaper-root,
+.MuiCard-root,
+div[role="presentation"] {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+/* Fix for image overflow */
+img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Fix for table overflow on mobile */
 table {
   width: 100%;
+  max-width: 100%;
   display: block;
   overflow-x: auto;
   white-space: nowrap;
@@ -36,8 +56,8 @@ table {
 
 /* Custom scrollbar for better UX */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -97,26 +117,49 @@ table {
 .responsive-table {
   overflow-x: auto;
   scrollbar-width: thin;
+  max-width: 100vw;
 }
 
 /* Mobile optimizations */
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  /* General button improvements */
   button, 
   .MuiButton-root, 
   .MuiIconButton-root {
     min-height: 42px;
     min-width: 42px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    font-size: 0.875rem !important;
   }
   
+  /* Input fields */
   .MuiInputBase-root {
     min-height: 46px;
+    font-size: 0.875rem !important;
   }
   
   /* Ensure content stays within viewport */
   .MuiContainer-root {
-    padding-left: 12px;
-    padding-right: 12px;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* Fix side padding for all Paper elements */
+  .MuiPaper-root {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Dashboard layout adjustments */
+  .MuiDrawer-paper {
+    width: 240px !important;
   }
   
   /* Make tables scroll horizontally on mobile */
@@ -124,9 +167,14 @@ table {
     display: block;
     width: 100%;
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Adjust typography for better mobile reading */
+  .MuiTypography-h3 {
+    font-size: 1.75rem !important;
+  }
+  
   .MuiTypography-h4 {
     font-size: 1.5rem !important;
   }
@@ -134,21 +182,56 @@ table {
   .MuiTypography-h5 {
     font-size: 1.25rem !important;
   }
+  
+  .MuiTypography-h6 {
+    font-size: 1.125rem !important;
+  }
+  
+  .MuiTypography-body1 {
+    font-size: 0.875rem !important;
+  }
+  
+  .MuiTypography-body2 {
+    font-size: 0.8125rem !important;
+  }
 
   /* Fix for form controls */
   .MuiFormControl-root {
-    width: 100%;
+    width: 100% !important;
   }
   
-  /* Fix Paper padding */
-  .MuiPaper-root {
-    padding-left: 12px !important;
-    padding-right: 12px !important;
-  }
-  
-  /* Grid adjustment */
+  /* Grid adjustments */
   .MuiGrid-container {
     margin: 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  .MuiGrid-item {
+    padding: 8px !important;
+  }
+  
+  /* Dialog improvements */
+  .MuiDialog-paper {
+    margin: 16px !important;
+    width: calc(100% - 32px) !important;
+    max-width: calc(100% - 32px) !important;
+  }
+  
+  /* Card improvements */
+  .MuiCard-root {
+    overflow-x: hidden !important;
+  }
+  
+  /* List improvements */
+  .MuiList-root {
+    padding: 0 !important;
+  }
+  
+  /* Dashboard content margin */
+  .dashboard-content {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
     width: 100% !important;
   }
 }
@@ -163,4 +246,21 @@ a, button, .MuiButton-root, .MuiIconButton-root,
 .MuiListItemButton-root, .MuiSwitch-root, 
 .MuiCheckbox-root, .MuiRadio-root {
   transition: all 0.2s ease !important;
+}
+
+/* Fix for any potential overflow items that couldn't be caught */
+.MuiPopover-root,
+.MuiMenu-root, 
+.MuiModal-root {
+  z-index: 9999 !important;
+}
+
+/* Override any fixed width styles that may be causing overflow */
+[style*="width:"], 
+[style*="width="],
+[style*="width"],
+[style*="min-width:"],
+[style*="min-width="] {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 } 
