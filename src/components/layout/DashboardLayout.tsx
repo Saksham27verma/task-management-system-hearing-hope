@@ -533,7 +533,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             flexGrow: 1,
             maxWidth: '100%',
             width: '100%',
-            overflow: 'hidden',
+            overflow: 'auto',
           }}
           className="dashboard-content"
         >

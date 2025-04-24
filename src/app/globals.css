@@ -234,6 +234,46 @@ table {
     margin-right: 0 !important;
     width: 100% !important;
   }
+
+  /* Add smooth scrolling to all elements */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure dashboard content can scroll properly */
+  .dashboard-content {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    height: auto !important;
+    min-height: calc(100vh - 70px);
+    padding-bottom: 30px !important;
+  }
+
+  /* Ensure table containers can scroll properly */
+  .MuiTableContainer-root {
+    -webkit-overflow-scrolling: touch;
+    max-height: none !important;
+    min-height: 300px;
+  }
+  
+  /* Prevent fixed position elements from causing scroll issues */
+  .MuiAppBar-root, 
+  .MuiDrawer-root .MuiPaper-root {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Make sure content doesn't get cut off */
+  body {
+    overflow-x: hidden;
+    position: relative;
+    height: 100%;
+  }
+  
+  html {
+    height: 100%;
+    overflow-y: auto;
+  }
 }
 
 /* Prevent text selection on interactive elements */

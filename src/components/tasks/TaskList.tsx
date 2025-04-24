@@ -500,13 +500,9 @@ export default function TaskList() {
               }}
             >
               <MenuItem value="all">All Types</MenuItem>
-              <MenuItem value="documentation">Documentation</MenuItem>
-              <MenuItem value="research">Research</MenuItem>
-              <MenuItem value="design">Design</MenuItem>
-              <MenuItem value="development">Development</MenuItem>
-              <MenuItem value="testing">Testing</MenuItem>
-              <MenuItem value="deployment">Deployment</MenuItem>
-              <MenuItem value="maintenance">Maintenance</MenuItem>
+              <MenuItem value="DAILY">Daily</MenuItem>
+              <MenuItem value="WEEKLY">Weekly</MenuItem>
+              <MenuItem value="MONTHLY">Monthly</MenuItem>
             </TextField>
           </Grid>
           
@@ -554,7 +550,16 @@ export default function TaskList() {
           </Typography>
         ) : (
           <>
-            <TableContainer sx={{ maxHeight: { xs: 'calc(100vh - 300px)', sm: 'calc(100vh - 280px)' } }}>
+            <TableContainer 
+              sx={{ 
+                maxHeight: { 
+                  xs: 'unset', // Remove fixed height constraint for mobile
+                  sm: 'calc(100vh - 280px)' 
+                },
+                overflowY: 'auto',
+                WebkitOverflowScrolling: 'touch', // Add smooth scrolling on iOS
+              }}
+            >
               <Table stickyHeader aria-label="tasks table" size={useMediaQuery('(max-width:600px)') ? 'small' : 'medium'}>
                 <TableHead>
                   <TableRow>
