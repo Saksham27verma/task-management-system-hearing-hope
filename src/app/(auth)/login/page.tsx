@@ -110,7 +110,7 @@ function LoginForm() {
         />
       )}
       
-      <Container component="main" maxWidth="xs">
+      <Box sx={{ maxWidth: '360px', width: '100%', mx: 'auto', px: 2 }}>
         <Fade in={fadeIn} timeout={800}>
           <Paper 
             elevation={6} 
@@ -124,9 +124,7 @@ function LoginForm() {
               borderRadius: 2,
               boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
               overflow: 'hidden',
-              position: 'relative',
-              maxWidth: '400px',
-              mx: 'auto'
+              position: 'relative'
             }}
           >
             {isLoading && (
@@ -319,7 +317,7 @@ function LoginForm() {
             </Typography>
           </Paper>
         </Fade>
-      </Container>
+      </Box>
     </Box>
   );
 }

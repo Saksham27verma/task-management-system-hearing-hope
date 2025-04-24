@@ -10,8 +10,17 @@ export async function GET(request: NextRequest) {
       const redirectUri = `${process.env.NEXTAUTH_URL}/api/google/callback`;
       
       if (!clientId) {
+        console.error('Missing Google OAuth configuration: GOOGLE_CLIENT_ID not set');
         return NextResponse.json(
-          { success: false, message: 'Google OAuth not configured' },
+          { success: false, message: 'Google OAuth not configured - Missing client ID' },
+          { status: 500 }
+        );
+      }
+      
+      if (!process.env.NEXTAUTH_URL) {
+        console.error('Missing Google OAuth configuration: NEXTAUTH_URL not set');
+        return NextResponse.json(
+          { success: false, message: 'Google OAuth not configured - Missing NEXTAUTH_URL' },
           { status: 500 }
         );
       }
@@ -24,14 +33,24 @@ export async function GET(request: NextRequest) {
       
       const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&scope=${scope}&access_type=${accessType}&prompt=${prompt}&state=${user.userId}`;
       
+      console.log(`Generated Google auth URL for user ${user.userId} with redirect to ${redirectUri}`);
+      
       return NextResponse.json({
         success: true,
-        authUrl
+        authUrl,
+        debug: {
+          userId: user.userId,
+          redirectUri
+        }
       });
     } catch (error) {
       console.error('Error generating Google auth URL:', error);
       return NextResponse.json(
-        { success: false, message: 'Failed to generate authentication URL' },
+        { 
+          success: false, 
+          message: 'Failed to generate authentication URL',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        },
         { status: 500 }
       );
     }

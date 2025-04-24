@@ -779,17 +779,63 @@ export default function CalendarPage() {
     setGoogleCalendarLoading(true);
     
     try {
-      const response = await fetch('/api/google/auth');
+      const response = await fetch('/api/google/auth', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
       if (data.success) {
         setGoogleAuthUrl(data.authUrl);
+        console.log("Retrieved auth URL successfully");
       } else {
-        setError('Failed to get Google authentication URL');
+        setError('Failed to get Google authentication URL: ' + (data.message || 'Unknown error'));
+        console.error('Google auth response error:', data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error getting Google auth URL:', error);
-      setError('Error connecting to Google Calendar');
+      setError('Error connecting to Google Calendar: ' + (error.message || 'Unknown error'));
+    } finally {
+      setGoogleCalendarLoading(false);
+    }
+  };
+  
+  const handleConnectToGoogle = () => {
+    if (googleAuthUrl) {
+      console.log("Redirecting to Google auth URL:", googleAuthUrl);
+      // Open in a new window to avoid losing state
+      window.open(googleAuthUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      setError('Google authentication URL is not available. Please try again.');
+    }
+  };
+  
+  const handleDisconnectFromGoogle = async () => {
+    try {
+      setGoogleCalendarLoading(true);
+      
+      const response = await fetch('/api/google/tokens', {
+        method: 'DELETE',
+      });
+      
+      if (response.ok) {
+        setGoogleCalendarConnected(false);
+        setOpenGoogleCalendarDialog(false);
+      } else {
+        const data = await response.json();
+        setError(data.message || 'Failed to disconnect from Google Calendar');
+      }
+    } catch (error: any) {
+      console.error('Error disconnecting from Google:', error);
+      setError('Error disconnecting from Google Calendar');
     } finally {
       setGoogleCalendarLoading(false);
     }
@@ -836,35 +882,6 @@ export default function CalendarPage() {
     } catch (error) {
       console.error('Error updating settings:', error);
       setError('Failed to update Google Calendar settings');
-    } finally {
-      setGoogleCalendarLoading(false);
-    }
-  };
-  
-  const handleConnectToGoogle = () => {
-    if (googleAuthUrl) {
-      window.location.href = googleAuthUrl;
-    }
-  };
-  
-  const handleDisconnectFromGoogle = async () => {
-    try {
-      setGoogleCalendarLoading(true);
-      
-      const response = await fetch('/api/google/tokens', {
-        method: 'DELETE',
-      });
-      
-      if (response.ok) {
-        setGoogleCalendarConnected(false);
-        setOpenGoogleCalendarDialog(false);
-      } else {
-        const data = await response.json();
-        setError(data.message || 'Failed to disconnect from Google Calendar');
-      }
-    } catch (error) {
-      console.error('Error disconnecting from Google:', error);
-      setError('Error disconnecting from Google Calendar');
     } finally {
       setGoogleCalendarLoading(false);
     }
