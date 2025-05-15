@@ -36,6 +36,7 @@ import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   Videocam as VideoIcon,
+  Bookmarks as BookmarksIcon,
 } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -255,6 +256,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       href: '/dashboard/calendar',
       permissions: ['calendar:read'],
       roles: ['SUPER_ADMIN', 'MANAGER', 'EMPLOYEE'],
+    },
+    {
+      label: 'Quick Links',
+      icon: <BookmarksIcon />,
+      href: '/dashboard/quicklinks',
+      roles: ['SUPER_ADMIN', 'MANAGER'],
     },
     {
       label: 'Notice Board',
