@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import {
   Card,
@@ -26,13 +28,59 @@ import {
   Public as PublicIcon,
   ContentCopy as CopyIcon
 } from '@mui/icons-material';
+import LinkIcon from '@mui/icons-material/Link';
+import ArticleIcon from '@mui/icons-material/Article';
+import HomeIcon from '@mui/icons-material/Home';
+import InfoIcon from '@mui/icons-material/Info';
+import HelpIcon from '@mui/icons-material/Help';
+import WorkIcon from '@mui/icons-material/Work';
+import StarIcon from '@mui/icons-material/Star';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import FolderIcon from '@mui/icons-material/Folder';
+import BookIcon from '@mui/icons-material/Book';
+import CloudIcon from '@mui/icons-material/Cloud';
+import DevicesIcon from '@mui/icons-material/Devices';
+import EventIcon from '@mui/icons-material/Event';
+import EmailIcon from '@mui/icons-material/Email';
+import PeopleIcon from '@mui/icons-material/People';
+import SchoolIcon from '@mui/icons-material/School';
+import StorageIcon from '@mui/icons-material/Storage';
+import SecurityIcon from '@mui/icons-material/Security';
+import SettingsIcon from '@mui/icons-material/Settings';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+import DescriptionIcon from '@mui/icons-material/Description';
 import { useAuth } from '@/contexts/AuthContext';
-import * as Icons from '@mui/icons-material';
 
 // Helper to dynamically get the icon
 const DynamicIcon = ({ iconName, ...props }) => {
-  // Default to LinkIcon if the requested icon doesn't exist
-  const IconComponent = Icons[`${iconName.charAt(0).toUpperCase() + iconName.slice(1)}Icon`] || Icons.LinkIcon;
+  const iconMap = {
+    'link': LinkIcon,
+    'description': DescriptionIcon,
+    'article': ArticleIcon,
+    'home': HomeIcon,
+    'info': InfoIcon,
+    'help': HelpIcon,
+    'work': WorkIcon,
+    'star': StarIcon,
+    'favorite': FavoriteIcon,
+    'bookmark': BookmarkIcon,
+    'folder': FolderIcon,
+    'book': BookIcon,
+    'cloud': CloudIcon,
+    'device': DevicesIcon,
+    'event': EventIcon,
+    'email': EmailIcon,
+    'people': PeopleIcon,
+    'school': SchoolIcon,
+    'storage': StorageIcon,
+    'security': SecurityIcon,
+    'settings': SettingsIcon,
+    'dashboard': DashboardIcon,
+    'document': DescriptionIcon
+  };
+  
+  const IconComponent = iconMap[iconName?.toLowerCase()] || LinkIcon;
   return <IconComponent {...props} />;
 };
 

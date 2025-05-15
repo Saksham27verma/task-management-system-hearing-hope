@@ -3,7 +3,11 @@ import { Box, Typography, Button, Paper } from '@mui/material';
 import { LockOutlined as LockIcon } from '@mui/icons-material';
 import Link from 'next/link';
 
-const AccessDenied = () => {
+interface AccessDeniedProps {
+  message?: string;
+}
+
+const AccessDenied = ({ message }: AccessDeniedProps) => {
   return (
     <Box
       sx={{
@@ -35,7 +39,7 @@ const AccessDenied = () => {
           Access Denied
         </Typography>
         <Typography variant="body1" sx={{ mb: 3, color: 'text.secondary' }}>
-          You don't have permission to access this page. This feature is only available for managers and administrators.
+          {message || "You don't have permission to access this page. This feature is only available for managers and administrators."}
         </Typography>
         <Button
           component={Link}

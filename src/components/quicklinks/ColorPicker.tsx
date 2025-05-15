@@ -1,3 +1,5 @@
+"use client";
+
 import React from 'react';
 import { Box, IconButton, Grid, Tooltip, useTheme } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
