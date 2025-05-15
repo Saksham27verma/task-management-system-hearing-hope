@@ -77,7 +77,10 @@ const users = [
 
 // Task priorities and types
 const priorities = ['HIGH', 'MEDIUM', 'LOW'];
-const taskTypes = ['DAILY', 'WEEKLY', 'MONTHLY'];
+const taskTypes = [
+  'DAILY', 'WEEKLY', 'MONTHLY', 
+  'DAILY_RECURRING', 'WEEKLY_RECURRING', 'MONTHLY_RECURRING'
+];
 const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'DELAYED'];
 
 // Generate a random task

@@ -189,7 +189,7 @@ export async function PUT(
   });
 }
 
-// DELETE /api/users/[id] - Delete a user (deactivate)
+// DELETE /api/users/[id] - Delete a user (actually delete from database)
 export async function DELETE(
   request: NextRequest,
   { params }: any
@@ -223,13 +223,20 @@ export async function DELETE(
         );
       }
       
-      // Set isActive to false instead of actual deletion
-      userToDelete.isActive = false;
-      await userToDelete.save();
+      // Prevent deletion of other super admins
+      if (userToDelete.role === 'SUPER_ADMIN') {
+        return NextResponse.json(
+          { success: false, message: 'Cannot delete another super admin account' },
+          { status: 403 }
+        );
+      }
+      
+      // Actually delete the user from the database
+      await User.findByIdAndDelete(params.id);
       
       return NextResponse.json({
         success: true,
-        message: 'User deactivated successfully'
+        message: 'User deleted successfully'
       });
     } catch (error) {
       console.error(`Error deleting user ${params.id}:`, error);

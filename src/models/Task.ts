@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type TaskType = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+export type TaskType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'DAILY_RECURRING' | 'WEEKLY_RECURRING' | 'MONTHLY_RECURRING';
 export type TaskStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELAYED' | 'INCOMPLETE';
 export type TaskPriority = 'HIGH' | 'MEDIUM' | 'LOW';
 
@@ -82,7 +82,7 @@ const TaskSchema = new Schema<ITask>(
     },
     taskType: {
       type: String,
-      enum: ['DAILY', 'WEEKLY', 'MONTHLY'],
+      enum: ['DAILY', 'WEEKLY', 'MONTHLY', 'DAILY_RECURRING', 'WEEKLY_RECURRING', 'MONTHLY_RECURRING'],
       required: [true, 'Please provide task type'],
     },
     priority: {

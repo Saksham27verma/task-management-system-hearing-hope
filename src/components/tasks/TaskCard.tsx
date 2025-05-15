@@ -26,20 +26,29 @@ import { useRouter } from 'next/navigation';
 import { formatDateHuman, isDatePast, getDaysRemaining } from '@/utils/dates';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Define theme colors
+const ORANGE_COLOR = '#F26722';
+const TEAL_COLOR = '#19ac8b';
+const LIGHT_ORANGE = '#FFF1E8';
+const LIGHT_TEAL = '#e6f7f4';
+
 // Status color mapping
 const statusColors: Record<string, string> = {
-  PENDING: '#f6c23e', // Amber
-  IN_PROGRESS: '#4e73df', // Blue
-  COMPLETED: '#1cc88a', // Green
+  PENDING: ORANGE_COLOR, // Orange
+  IN_PROGRESS: TEAL_COLOR, // Teal
+  COMPLETED: TEAL_COLOR, // Teal
   DELAYED: '#e74a3b', // Red
   INCOMPLETE: '#e74a3b', // Red
 };
 
 // Task type badges
 const taskTypeBadges: Record<string, { label: string; color: string }> = {
-  DAILY: { label: 'Daily', color: '#4e73df' },
-  WEEKLY: { label: 'Weekly', color: '#1cc88a' },
-  MONTHLY: { label: 'Monthly', color: '#f6c23e' },
+  DAILY: { label: 'Daily', color: ORANGE_COLOR },
+  WEEKLY: { label: 'Weekly', color: TEAL_COLOR },
+  MONTHLY: { label: 'Monthly', color: '#6c757d' }, // Grey for contrast
+  DAILY_RECURRING: { label: 'Daily Recurring', color: '#ff9800' }, // Orange variation
+  WEEKLY_RECURRING: { label: 'Weekly Recurring', color: '#00bcd4' }, // Teal variation
+  MONTHLY_RECURRING: { label: 'Monthly Recurring', color: '#9e9e9e' }, // Grey variation
 };
 
 // Progress calculation for weekly/monthly tasks
@@ -53,7 +62,7 @@ interface TaskCardProps {
     _id: string;
     title: string;
     description: string;
-    taskType: 'DAILY' | 'WEEKLY' | 'MONTHLY';
+    taskType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'DAILY_RECURRING' | 'WEEKLY_RECURRING' | 'MONTHLY_RECURRING';
     status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'DELAYED' | 'INCOMPLETE';
     dueDate: string;
     assignedTo: {
@@ -124,6 +133,7 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
           boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.1)',
         },
         borderLeft: `4px solid ${statusColors[task.status]}`,
+        borderRadius: 2,
       }}
       onClick={handleViewTask}
     >
@@ -171,7 +181,14 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
             <LinearProgress 
               variant="determinate" 
               value={calculateProgress(task.progressUpdates)} 
-              sx={{ height: 6, borderRadius: 3 }}
+              sx={{ 
+                height: 6, 
+                borderRadius: 3,
+                backgroundColor: task.status === 'COMPLETED' ? LIGHT_TEAL : LIGHT_ORANGE,
+                '& .MuiLinearProgress-bar': {
+                  backgroundColor: task.status === 'COMPLETED' ? TEAL_COLOR : ORANGE_COLOR
+                }
+              }}
             />
           </Box>
         )}
@@ -213,6 +230,12 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
       <CardActions sx={{ justifyContent: 'space-between', borderTop: '1px solid rgba(0, 0, 0, 0.08)' }}>
         <Button 
           size="small" 
+          sx={{ 
+            color: TEAL_COLOR,
+            '&:hover': {
+              backgroundColor: LIGHT_TEAL
+            }
+          }}
           onClick={handleViewTask}
         >
           View Details
@@ -222,7 +245,12 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
           {isOwner && task.status !== 'COMPLETED' && (
             <Button 
               size="small" 
-              color="secondary" 
+              sx={{ 
+                color: ORANGE_COLOR,
+                '&:hover': {
+                  backgroundColor: LIGHT_ORANGE
+                }
+              }}
               onClick={handleUpdateProgress}
             >
               Update Progress
@@ -233,7 +261,13 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
             <IconButton 
               size="small" 
               onClick={handleEditTask}
-              sx={{ ml: 1 }}
+              sx={{ 
+                ml: 1,
+                color: ORANGE_COLOR,
+                '&:hover': {
+                  backgroundColor: LIGHT_ORANGE
+                }
+              }}
             >
               <EditIcon fontSize="small" />
             </IconButton>

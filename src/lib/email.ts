@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import User from '@/models/User';
+import Notification from '@/models/Notification';
 
 // Email configuration
 const EMAIL_HOST = process.env.EMAIL_HOST!;
@@ -150,6 +152,41 @@ export const emailTemplates = {
       </div>
     `,
   }),
+  
+  adminNotification: (
+    action: string,
+    details: string,
+    userInvolved: string,
+    linkText: string,
+    linkUrl: string
+  ) => ({
+    subject: `Admin Alert: ${action}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+        <div style="background-color: #19ac8b; padding: 20px; text-align: center; color: white;">
+          <h1>Admin Notification</h1>
+        </div>
+        <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
+          <p>Hello Admin,</p>
+          <p>This is an automated notification about a recent system activity:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #F26722;">
+            <h2 style="margin-top: 0; color: #19ac8b;">${action}</h2>
+            <p><strong>Details:</strong> ${details}</p>
+            <p><strong>User Involved:</strong> ${userInvolved}</p>
+            <p><strong>Timestamp:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <p>Please log in to the Hearing Hope Task Management System for more details.</p>
+          <div style="text-align: center; margin-top: 30px;">
+            <a href="${process.env.NEXTAUTH_URL}${linkUrl}" style="background-color: #F26722; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">${linkText}</a>
+          </div>
+          <p style="margin-top: 30px;">Thank you,<br>Hearing Hope System</p>
+        </div>
+        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+          <p>This is an automated message from the Hearing Hope Task Management System.</p>
+        </div>
+      </div>
+    `,
+  }),
 };
 
 // Send email function
@@ -170,6 +207,83 @@ export async function sendEmail(
     return true;
   } catch (error) {
     console.error('Error sending email:', error);
+    return false;
+  }
+}
+
+// Function to notify all super admins about system events
+export async function notifyAdmins(
+  action: string,
+  details: string,
+  userInvolved: string,
+  linkText: string = 'View Details',
+  linkUrl: string = '/dashboard'
+): Promise<boolean> {
+  try {
+    // Connect to database (ensure this doesn't cause issues with existing connections)
+    // This assumes your database connection is established elsewhere when needed
+    
+    // Find all super admin users
+    const superAdmins = await User.find({ role: 'SUPER_ADMIN', isActive: true }, 'email name');
+    
+    if (superAdmins.length === 0) {
+      console.log('No active super admins found to notify');
+      return false;
+    }
+    
+    // Create and send notification email to all admins
+    const adminEmails = superAdmins.map(admin => admin.email);
+    
+    // Create and send notification email
+    const notification = emailTemplates.adminNotification(
+      action,
+      details,
+      userInvolved,
+      linkText,
+      linkUrl
+    );
+    
+    const emailResult = await sendEmail(adminEmails, notification.subject, notification.html);
+    
+    // For each admin, also create an in-app notification
+    // But first check if a similar notification exists in the last 5 minutes to avoid duplicates
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    
+    for (const admin of superAdmins) {
+      try {
+        // Check for similar recent notifications to avoid duplicates
+        const existingNotification = await Notification.findOne({
+          userId: admin._id,
+          type: 'status', // Admin notifications are status type
+          title: action,
+          message: { $regex: userInvolved, $options: 'i' }, // Look for similar content
+          createdAt: { $gt: fiveMinutesAgo }
+        });
+        
+        // Only create a new notification if no similar one exists
+        if (!existingNotification) {
+          const adminNotification = new Notification({
+            userId: admin._id,
+            type: 'status',
+            title: action,
+            message: `${details} - By: ${userInvolved}`,
+            link: linkUrl,
+            read: false,
+            createdAt: new Date()
+          });
+          
+          await adminNotification.save();
+        } else {
+          console.log(`Skipping duplicate notification for admin ${admin._id}: ${action}`);
+        }
+      } catch (notifyError) {
+        console.error(`Error creating in-app notification for admin ${admin._id}:`, notifyError);
+      }
+    }
+    
+    return emailResult;
+  } catch (error) {
+    console.error('Error notifying admins:', error);
     return false;
   }
 } 

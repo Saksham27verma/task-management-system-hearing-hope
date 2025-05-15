@@ -70,6 +70,7 @@ import {
   eachDayOfInterval,
   isSameMonth
 } from 'date-fns';
+import { useNotificationManager } from '@/hooks/useNotificationManager';
 
 // Map JS day index (0-6, Sunday-Saturday) to weekday names
 const JS_DAY_TO_WEEKDAY = {
@@ -115,6 +116,8 @@ export default function TaskDetailPage({ params }: any) {
     message: '',
     severity: 'info'
   });
+
+  const { notifyNewTask } = useNotificationManager();
 
   // Fetch task details
   useEffect(() => {
@@ -260,6 +263,29 @@ export default function TaskDetailPage({ params }: any) {
           setTask(taskData.task);
           setCompleteDialogOpen(false);
           setCompleteRemarks('');
+          
+          // Show notification for recurring task creation
+          if (data.newRecurringTaskId) {
+            // Add client-side notification about the new recurring task
+            notifyNewTask({
+              _id: data.newRecurringTaskId,
+              title: task.title,
+              dueDate: new Date()
+            });
+            
+            // Show success message
+            setSnackbar({
+              open: true,
+              message: "Task completed and new recurring task created.",
+              severity: 'success'
+            });
+          } else {
+            setSnackbar({
+              open: true,
+              message: "Task completed successfully.",
+              severity: 'success'
+            });
+          }
         }
       } else {
         setError(data.message || 'Failed to mark task as complete');
@@ -290,6 +316,9 @@ export default function TaskDetailPage({ params }: any) {
       case 'DAILY': return 'Daily Task';
       case 'WEEKLY': return 'Weekly Task';
       case 'MONTHLY': return 'Monthly Task';
+      case 'DAILY_RECURRING': return 'Daily Recurring Task';
+      case 'WEEKLY_RECURRING': return 'Weekly Recurring Task';
+      case 'MONTHLY_RECURRING': return 'Monthly Recurring Task';
       default: return type;
     }
   };

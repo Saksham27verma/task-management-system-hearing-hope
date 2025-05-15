@@ -20,7 +20,9 @@ import {
   FormGroup,
   FormControlLabel,
   Chip,
-  Divider
+  Divider,
+  alpha,
+  useTheme
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -65,6 +67,9 @@ const DAYS_OF_WEEK = [
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
 
 const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
+  const theme = useTheme();
+  const primaryColor = '#F26722'; // Orange color
+  
   // Convert assignedTo to array if it's a string (for backwards compatibility)
   const initialAssignedTo = task?.assignedTo
     ? Array.isArray(task.assignedTo)
@@ -158,14 +163,17 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
       
       switch (formData.taskType) {
         case 'DAILY':
+        case 'DAILY_RECURRING':
           // For daily tasks, set due date to 1 day after start date
           newDueDate = addDays(formData.startDate, 1);
           break;
         case 'WEEKLY':
+        case 'WEEKLY_RECURRING':
           // For weekly tasks, set due date to 7 days after start date
           newDueDate = addDays(formData.startDate, 7);
           break;
         case 'MONTHLY':
+        case 'MONTHLY_RECURRING':
           // For monthly tasks, set due date to 30 days after start date
           newDueDate = addDays(formData.startDate, 30);
           break;
@@ -198,31 +206,37 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     }
   };
 
-  // Handle select input changes
+  // Handle select changes
   const handleSelectChange = (e: SelectChangeEvent<string | string[]>) => {
     const { name, value } = e.target;
     
+    // Special handling for assignedTo multi-select
     if (name === 'assignedTo') {
-      // Check if the select-all option was clicked
+      // Handle select all option
       if (Array.isArray(value) && value.includes('select-all')) {
-        // Select all employees
-        const allEmployeeIds = employees.map(emp => emp._id);
+        // If select-all is clicked, select all employees
         setFormData({
           ...formData,
-          assignedTo: allEmployeeIds
+          assignedTo: employees.map(emp => emp._id)
         });
       } else {
-        // Handle regular multiple selection
         setFormData({
           ...formData,
-          [name]: typeof value === 'string' ? value.split(',') : value
+          assignedTo: value as string[]
         });
       }
     } else {
-      // Handle regular select fields
       setFormData({
         ...formData,
-        [name]: value as string
+        [name as string]: value,
+      });
+    }
+
+    // Clear error when field is edited
+    if (errors[name as keyof typeof errors]) {
+      setErrors({
+        ...errors,
+        [name as string]: '',
       });
     }
   };
@@ -230,42 +244,44 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
   // Handle start date change
   const handleStartDateChange = (date: Date | null) => {
     if (date) {
-      setFormData(prevData => {
-        // Calculate new due date based on task type and new start date
-        let newDueDate;
-        
-        switch (prevData.taskType) {
-          case 'DAILY':
-            newDueDate = addDays(date, 1);
-            break;
-          case 'WEEKLY':
-            newDueDate = addDays(date, 7);
-            break;
-          case 'MONTHLY':
-            newDueDate = addDays(date, 30);
-            break;
-          default:
-            newDueDate = addDays(date, 1);
-        }
-        
-        return {
-          ...prevData,
-          startDate: date,
-          dueDate: newDueDate
-        };
+      setFormData({
+        ...formData,
+        startDate: date,
       });
       
-      // Clear error
+      // Reset startDate error if any
       if (errors.startDate) {
         setErrors({
           ...errors,
           startDate: '',
         });
       }
+      
+      // Adjust due date based on task type and new start date
+      let newDueDate;
+      
+      switch (formData.taskType) {
+        case 'DAILY':
+          newDueDate = addDays(date, 1);
+          break;
+        case 'WEEKLY':
+          newDueDate = addDays(date, 7);
+          break;
+        case 'MONTHLY':
+          newDueDate = addMonths(date, 1);
+          break;
+        default:
+          newDueDate = addDays(date, 1);
+      }
+      
+      setFormData(prevData => ({
+        ...prevData,
+        dueDate: newDueDate
+      }));
     }
   };
 
-  // Handle due date change - manual override
+  // Handle due date change
   const handleDueDateChange = (date: Date | null) => {
     if (date) {
       setFormData({
@@ -273,7 +289,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
         dueDate: date,
       });
       
-      // Clear error
+      // Reset dueDate error if any
       if (errors.dueDate) {
         setErrors({
           ...errors,
@@ -283,58 +299,59 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     }
   };
 
-  // Handle Sunday inclusion toggle
+  // Handle Sunday checkbox change
   const handleIncludeSundaysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIncludeSundays(e.target.checked);
   };
 
-  // Validate form
+  // Validate form before submission
   const validateForm = () => {
-    const newErrors = {
-      title: '',
-      description: '',
-      assignedTo: '',
-      startDate: '',
-      dueDate: '',
-    };
+    let isValid = true;
+    const newErrors = { ...errors };
 
-    // Title validation
+    // Check title
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = 'Task title is required';
+      isValid = false;
     }
 
-    // Description validation
+    // Check description
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = 'Task description is required';
+      isValid = false;
     }
 
-    // Assigned to validation
+    // Check assignedTo
     if (!formData.assignedTo.length) {
-      newErrors.assignedTo = 'Please select at least one employee';
+      newErrors.assignedTo = 'At least one employee must be assigned to the task';
+      isValid = false;
     }
 
-    // Start date validation
+    // Check dates
     if (!formData.startDate) {
       newErrors.startDate = 'Start date is required';
+      isValid = false;
     }
 
-    // Due date validation
     if (!formData.dueDate) {
       newErrors.dueDate = 'Due date is required';
-    } else if (formData.dueDate < formData.startDate) {
-      newErrors.dueDate = 'Due date cannot be earlier than start date';
+      isValid = false;
+    }
+
+    // Check if due date is after start date
+    if (formData.startDate && formData.dueDate && formData.startDate > formData.dueDate) {
+      newErrors.dueDate = 'Due date must be after start date';
+      isValid = false;
     }
 
     setErrors(newErrors);
-
-    // Return true if no errors (all values in newErrors are empty strings)
-    return Object.values(newErrors).every(error => !error);
+    return isValid;
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!validateForm()) {
       return;
     }
@@ -342,60 +359,83 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     setIsLoading(true);
     setSubmitError('');
 
-    const apiUrl = task?._id 
-      ? `/api/tasks/${task._id}` 
-      : '/api/tasks';
-    
-    // Prepare data for weekly or monthly tasks
-    const taskData = {
-      ...formData,
-      assignedTo: formData.assignedTo, // Pass the array of users
-    };
-
     try {
-      const response = await fetch(apiUrl, {
-        method: task?._id ? 'PUT' : 'POST',
+      // Determine if this is a create or update operation
+      const url = task && task._id 
+        ? `/api/tasks/${task._id}` 
+        : '/api/tasks';
+      
+      const method = task && task._id ? 'PUT' : 'POST';
+      
+      // Prepare task data for submission
+      const taskData = {
+        ...formData,
+        dateRange: {
+          includeSundays
+        }
+      };
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(taskData),
       });
-
+      
       const data = await response.json();
-
-      if (response.ok && data.success) {
+      
+      if (data.success) {
         onSubmit(true);
       } else {
-        throw new Error(data.message || 'Failed to save task');
+        setSubmitError(data.message || 'Failed to save task.');
+        onSubmit(false);
       }
     } catch (error) {
       console.error('Error saving task:', error);
-      setSubmitError('An error occurred while saving the task. Please try again.');
+      setSubmitError('An unexpected error occurred. Please try again.');
       onSubmit(false);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get task type description
+  // Task type description helper
   const getTaskTypeDescription = () => {
     switch (formData.taskType) {
       case 'DAILY':
-        return 'Daily tasks occur every day with a due date of 1 day after the start date.';
+        return 'One-time task that occurs once on a specific day';
       case 'WEEKLY':
-        return 'Weekly tasks occur weekly with a due date of 7 days after the start date.';
+        return 'One-time task that spans over a week';
       case 'MONTHLY':
-        return 'Monthly tasks occur monthly with a due date of 30 days after the start date.';
+        return 'One-time task that spans over a month';
+      case 'DAILY_RECURRING':
+        return 'Repeats every day automatically after completion';
+      case 'WEEKLY_RECURRING':
+        return 'Repeats every week automatically after completion';
+      case 'MONTHLY_RECURRING':
+        return 'Repeats every month automatically after completion';
       default:
         return '';
     }
   };
 
+  // Render form
   return (
-    <Box component="form" onSubmit={handleSubmit} sx={{ p: 3 }}>
+    <Box 
+      component="form" 
+      onSubmit={handleSubmit}
+      sx={{ p: 3 }}
+    >
       {submitError && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {submitError}
+        </Alert>
+      )}
+      
+      {fetchError && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          {fetchError}
         </Alert>
       )}
 
@@ -410,6 +450,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           error={!!errors.title}
           helperText={errors.title}
           required
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              '&.Mui-focused fieldset': {
+                borderColor: primaryColor,
+              },
+            },
+            '& .MuiInputLabel-root.Mui-focused': {
+              color: primaryColor,
+            }
+          }}
         />
 
         {/* Description */}
@@ -424,23 +474,45 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           error={!!errors.description}
           helperText={errors.description}
           required
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              '&.Mui-focused fieldset': {
+                borderColor: primaryColor,
+              },
+            },
+            '& .MuiInputLabel-root.Mui-focused': {
+              color: primaryColor,
+            }
+          }}
         />
 
         {/* Task Type and Status Row */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           {/* Task Type */}
           <FormControl fullWidth>
-            <InputLabel id="task-type-label">Task Type</InputLabel>
+            <InputLabel id="task-type-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Task Type</InputLabel>
             <Select
               labelId="task-type-label"
               name="taskType"
               value={formData.taskType}
               onChange={handleSelectChange}
               label="Task Type"
+              sx={{
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(0, 0, 0, 0.23)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: primaryColor,
+                },
+              }}
             >
               <MenuItem value="DAILY">Daily Task</MenuItem>
-              <MenuItem value="WEEKLY">Weekly Recurring Task</MenuItem>
-              <MenuItem value="MONTHLY">Monthly Recurring Task</MenuItem>
+              <MenuItem value="WEEKLY">Weekly Task</MenuItem>
+              <MenuItem value="MONTHLY">Monthly Task</MenuItem>
+              <Divider />
+              <MenuItem value="DAILY_RECURRING">Daily Recurring Task</MenuItem>
+              <MenuItem value="WEEKLY_RECURRING">Weekly Recurring Task</MenuItem>
+              <MenuItem value="MONTHLY_RECURRING">Monthly Recurring Task</MenuItem>
             </Select>
             <FormHelperText>{getTaskTypeDescription()}</FormHelperText>
           </FormControl>
@@ -448,13 +520,21 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           {/* Status - only for editing */}
           {task && (
             <FormControl fullWidth>
-              <InputLabel id="status-label">Status</InputLabel>
+              <InputLabel id="status-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Status</InputLabel>
               <Select
                 labelId="status-label"
                 name="status"
                 value={formData.status}
                 onChange={handleSelectChange}
                 label="Status"
+                sx={{
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: primaryColor,
+                  },
+                }}
               >
                 <MenuItem value="PENDING">Pending</MenuItem>
                 <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
@@ -471,7 +551,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           margin="normal" 
           error={!!errors.assignedTo}
         >
-          <InputLabel id="assignedTo-label">Assigned To</InputLabel>
+          <InputLabel id="assignedTo-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Assigned To</InputLabel>
           <Select
             labelId="assignedTo-label"
             id="assignedTo"
@@ -481,6 +561,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
             onChange={handleSelectChange}
             label="Assigned To"
             disabled={isLoading}
+            sx={{
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(0, 0, 0, 0.23)',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: primaryColor,
+              },
+            }}
             renderValue={(selected) => (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {(selected as string[]).map((value) => {
@@ -490,6 +578,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
                       key={value} 
                       label={employee ? employee.name : value} 
                       size="small"
+                      sx={{ bgcolor: alpha(primaryColor, 0.1), color: 'text.primary' }}
                     />
                   );
                 })}
@@ -534,7 +623,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
             }}
             disabled={isLoading || employees.length === 0 || formData.assignedTo.length === employees.length}
             variant="outlined"
-            sx={{ mr: 1 }}
+            sx={{ 
+              mr: 1,
+              borderColor: primaryColor,
+              color: primaryColor,
+              '&:hover': {
+                borderColor: primaryColor,
+                backgroundColor: alpha(primaryColor, 0.08),
+              }
+            }}
           >
             Select All Employees
           </Button>
@@ -548,6 +645,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
             }}
             disabled={isLoading || formData.assignedTo.length === 0}
             variant="outlined"
+            sx={{ 
+              borderColor: primaryColor,
+              color: primaryColor,
+              '&:hover': {
+                borderColor: primaryColor,
+                backgroundColor: alpha(primaryColor, 0.08),
+              }
+            }}
           >
             Clear Selection
           </Button>
@@ -566,6 +671,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
                   fullWidth: true,
                   error: !!errors.startDate,
                   helperText: errors.startDate,
+                  sx: {
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': {
+                        borderColor: primaryColor,
+                      },
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: primaryColor,
+                    }
+                  }
                 },
               }}
             />
@@ -582,6 +697,16 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
                   fullWidth: true,
                   error: !!errors.dueDate,
                   helperText: errors.dueDate || "Due date is automatically calculated based on task type",
+                  sx: {
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': {
+                        borderColor: primaryColor,
+                      },
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: primaryColor,
+                    }
+                  }
                 },
               }}
             />
@@ -600,6 +725,12 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
                 checked={includeSundays}
                 onChange={handleIncludeSundaysChange}
                 name="includeSundays"
+                sx={{
+                  color: alpha(primaryColor, 0.6),
+                  '&.Mui-checked': {
+                    color: primaryColor,
+                  },
+                }}
               />
             }
             label="Include Sundays in task schedule"
@@ -620,13 +751,29 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           rows={2}
           value={formData.remarks}
           onChange={handleChange}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              '&.Mui-focused fieldset': {
+                borderColor: primaryColor,
+              },
+            },
+            '& .MuiInputLabel-root.Mui-focused': {
+              color: primaryColor,
+            }
+          }}
         />
 
         {/* Buttons */}
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
           <Button
             onClick={onCancel}
-            sx={{ mr: 2 }}
+            sx={{ 
+              mr: 2,
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              }
+            }}
             disabled={isLoading}
           >
             Cancel
@@ -635,7 +782,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
             type="submit"
             variant="contained"
             disabled={isLoading}
-            startIcon={isLoading ? <CircularProgress size={20} /> : null}
+            startIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : null}
+            sx={{ 
+              bgcolor: primaryColor,
+              '&:hover': {
+                bgcolor: '#e05a15',
+              },
+              minWidth: 120
+            }}
           >
             {isLoading ? 'Saving...' : (task ? 'Update Task' : 'Create Task')}
           </Button>

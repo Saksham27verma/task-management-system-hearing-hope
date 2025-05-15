@@ -130,7 +130,10 @@ async function handleAnalyticsRequest(request: NextRequest, authUser?: any) {
     const tasksByType: Record<string, number> = {
       'Daily': tasks.filter(task => task.taskType === 'DAILY').length,
       'Weekly': tasks.filter(task => task.taskType === 'WEEKLY').length,
-      'Monthly': tasks.filter(task => task.taskType === 'MONTHLY').length
+      'Monthly': tasks.filter(task => task.taskType === 'MONTHLY').length,
+      'Daily Recurring': tasks.filter(task => task.taskType === 'DAILY_RECURRING').length,
+      'Weekly Recurring': tasks.filter(task => task.taskType === 'WEEKLY_RECURRING').length,
+      'Monthly Recurring': tasks.filter(task => task.taskType === 'MONTHLY_RECURRING').length
     };
     
     // Tasks by status

@@ -5,6 +5,10 @@ import { Box, CircularProgress, Typography, Fade, keyframes, useTheme } from '@m
 import Image from 'next/image';
 import { useThemeMode } from '@/contexts/ThemeContext';
 
+// Define theme colors
+const ORANGE_COLOR = '#F26722';
+const TEAL_COLOR = '#19ac8b';
+
 interface LoadingScreenProps {
   message?: string;
   fullScreen?: boolean;
@@ -45,8 +49,8 @@ const fadeInOut = keyframes`
 `;
 
 const glow = keyframes`
-  0%, 100% { box-shadow: 0 0 30px rgba(238, 100, 23, 0.4); }
-  50% { box-shadow: 0 0 50px rgba(238, 100, 23, 0.7); }
+  0%, 100% { box-shadow: 0 0 30px rgba(242, 103, 34, 0.4); }
+  50% { box-shadow: 0 0 50px rgba(242, 103, 34, 0.7); }
 `;
 
 const ripple = keyframes`
@@ -197,101 +201,57 @@ export default function LoadingScreen({
       >
         <Box
           sx={{
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            p: 3,
-            animation: `${revealLogo} 0.8s ease forwards`,
+            animation: `${revealLogo} 0.8s ease-out forwards`,
           }}
         >
-          {/* Logo with enhanced styling and effects */}
-          <Box 
-            sx={{ 
-              position: 'relative',
-              mb: 2,
-              p: 2,
-              borderRadius: '50%',
-              backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)',
-              boxShadow: isDark 
-                ? '0 0 30px rgba(238, 100, 23, 0.4)' 
-                : '0 0 30px rgba(238, 100, 23, 0.2)',
+          {/* Logo container with effects */}
+          <Box
+            sx={{
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: logoSize.width + 60,
-              height: logoSize.height + 60,
-              transition: 'all 0.3s ease-in-out',
+              position: 'relative',
+              mb: showAppName ? 3 : 4,
+              
               ...(logoBackgroundEffect === 'glow' && {
-                animation: `${glow} 2.5s infinite ease-in-out`,
+                '&::before': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  animation: `${glow} 3s infinite ease-in-out`,
+                  zIndex: -1,
+                }
               }),
-              '&:hover': {
-                boxShadow: isDark 
-                  ? '0 0 40px rgba(238, 100, 23, 0.5)' 
-                  : '0 0 40px rgba(238, 100, 23, 0.3)',
-              },
-              overflow: 'hidden',
-              '&::before': logoBackgroundEffect === 'ripple' ? {
-                content: '""',
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '100%',
-                height: '100%',
-                borderRadius: '50%',
-                backgroundColor: theme.palette.primary.main,
-                opacity: 0.2,
-                animation: `${ripple} 2s infinite ease-out`,
-              } : {},
-              // Enhanced border glow
-              border: `1px solid ${isDark 
-                ? 'rgba(238, 100, 23, 0.3)' 
-                : 'rgba(238, 100, 23, 0.1)'}`,
-            }}
-          >
-            {logoBackgroundEffect === 'ripple' && (
-              <>
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    backgroundColor: theme.palette.primary.main,
-                    opacity: 0.1,
-                    animation: `${ripple} 2s infinite ease-out 0.5s`,
-                  }}
-                />
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: '100%',
-                    height: '100%',
-                    borderRadius: '50%',
-                    backgroundColor: theme.palette.primary.main,
-                    opacity: 0.05,
-                    animation: `${ripple} 2s infinite ease-out 1s`,
-                  }}
-                />
-              </>
-            )}
-            
-            <Box
-              sx={{
-                animation: getAnimation(),
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+              
+              ...(logoBackgroundEffect === 'ripple' && {
+                '&::before, &::after': {
+                  content: '""',
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  border: `2px solid ${ORANGE_COLOR}`,
+                  animation: `${ripple} 2s infinite`,
+                  zIndex: -1,
+                },
+                '&::after': {
+                  animationDelay: '0.5s',
+                }
+              }),
+              
+              // Shine effect for the logo
+              ...(animationStyle === 'shine' && {
                 position: 'relative',
-                '&::after': animationStyle === 'shine' ? {
+                '&::after': {
                   content: '""',
                   position: 'absolute',
                   top: 0,
@@ -299,116 +259,110 @@ export default function LoadingScreen({
                   width: '100%',
                   height: '100%',
                   background: `linear-gradient(
-                    90deg, 
-                    transparent, 
-                    ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.8)'}, 
+                    90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.5),
                     transparent
                   )`,
-                  maskImage: 'linear-gradient(#fff 0 0)',
-                  maskSize: '200% 100%',
-                  animation: `${shine} 2.5s infinite`,
-                } : {},
+                  backgroundSize: '200% 100%',
+                  animation: `${shine} 2s infinite`,
+                  zIndex: 1,
+                }
+              }),
+            }}
+          >
+            <Box
+              sx={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: logoSize.width,
+                height: logoSize.height,
+                animation: getAnimation(),
               }}
             >
               <Image
-                src="/images/logohope.svg"
-                alt="Hearing Hope Logo"
+                src="/images/logo.png"
+                alt="Logo"
                 width={logoSize.width}
                 height={logoSize.height}
-                priority
-                style={{ 
+                style={{
                   objectFit: 'contain',
-                  filter: isDark 
-                    ? 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' 
-                    : 'drop-shadow(0 2px 8px rgba(0,0,0,0.2))'
                 }}
               />
             </Box>
           </Box>
           
-          {/* App name display */}
+          {/* App Name with typing animation */}
           {showAppName && (
-            <Typography 
-              variant="h4" 
-              component="h1" 
-              sx={{ 
-                mb: 1,
-                color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
-                fontWeight: 500,
-                animation: `${revealText} 1s ease forwards`,
+            <Typography
+              variant="h4"
+              component="h1"
+              align="center"
+              sx={{
+                mb: 5,
+                fontWeight: 600,
+                color: isDark ? '#fff' : '#333',
                 overflow: 'hidden',
                 whiteSpace: 'nowrap',
-                textOverflow: 'ellipsis',
-                textShadow: isDark 
-                  ? '0 0 10px rgba(238, 100, 23, 0.5)' 
-                  : 'none',
+                borderRight: `3px solid ${ORANGE_COLOR}`,
+                animation: `${revealText} 0.8s steps(40, end) forwards,
+                           blink-caret 0.75s step-end infinite`,
+                '@keyframes blink-caret': {
+                  'from, to': { borderColor: 'transparent' },
+                  '50%': { borderColor: ORANGE_COLOR },
+                },
+                animationDelay: '0.5s',
+                opacity: 0,
+                width: 0,
               }}
             >
-              Hearing Hope
+              Hope Task Management
             </Typography>
           )}
           
-          {/* Loading message */}
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              mb: 2,
-              color: isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)',
-              animation: `${revealText} 0.8s 0.3s ease forwards`,
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-              textOverflow: 'ellipsis',
-              opacity: 0,
-              fontSize: '1.1rem',
-            }}
-          >
-            {message}
-          </Typography>
-          
           {/* Progress indicator */}
           {showProgress && (
-            <Box sx={{ 
-              position: 'relative', 
-              mt: 1,
-              width: '180px',
-              height: '40px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
+            <Box sx={{ mt: showAppName ? 0 : 4, textAlign: 'center' }}>
               <CircularProgress 
                 variant="determinate" 
-                value={progressValue}
-                size={40} 
+                value={progressValue} 
+                size={48}
                 thickness={4}
                 sx={{ 
-                  color: progressColor || theme.palette.primary.main,
-                  // Add shadow for better visibility
-                  filter: isDark 
-                    ? 'drop-shadow(0 0 3px rgba(238, 100, 23, 0.5))' 
-                    : 'none',
+                  color: progressColor || TEAL_COLOR,
+                  mb: 2
                 }}
               />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+              <Typography 
+                variant="body1" 
+                color={isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)'}
+                sx={{ 
+                  mt: 0.5,
+                  animation: `${fadeInOut} 2s infinite ease-in-out`,
+                  fontSize: '1rem',
+                  fontWeight: 500
                 }}
               >
-                <Typography
-                  variant="caption"
-                  component="div"
-                  sx={{ 
-                    color: isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
-                    fontWeight: 600,
-                    fontSize: '0.8rem',
-                  }}
-                >
-                  {`${Math.round(progressValue)}%`}
-                </Typography>
-              </Box>
+                {message} {progressValue}%
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Simple message without progress */}
+          {!showProgress && (
+            <Box sx={{ mt: 3, display: 'flex', alignItems: 'center' }}>
+              <CircularProgress 
+                size={24} 
+                sx={{ mr: 1.5, color: ORANGE_COLOR }}
+              />
+              <Typography 
+                variant="body1" 
+                color={isDark ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.7)'}
+              >
+                {message}
+              </Typography>
             </Box>
           )}
         </Box>

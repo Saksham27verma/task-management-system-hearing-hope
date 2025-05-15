@@ -59,6 +59,13 @@ const getDrawerWidth = (isMobile: boolean, isSmallMobile: boolean) => {
   return 280;
 };
 
+// Main content padding based on screen size
+const getContentPadding = (isMobile: boolean, isSmallMobile: boolean) => {
+  if (isSmallMobile) return { xs: 1, sm: 2 };
+  if (isMobile) return { xs: 2, sm: 3 };
+  return { xs: 3, sm: 4 };
+};
+
 interface NavItem {
   label: string;
   icon: React.ReactNode;
@@ -115,6 +122,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           /* Fix for select dropdown */
           .MuiSelect-select {
             padding-right: 24px !important;
+          }
+          
+          /* Improve button sizing on mobile */
+          .MuiButton-root {
+            font-size: 0.875rem !important;
+            padding: 6px 16px !important;
+          }
+          
+          /* Better tap targets */
+          .MuiListItem-root, .MuiMenuItem-root {
+            min-height: 48px !important;
+          }
+          
+          /* Better form layout */
+          .MuiGrid-container {
+            gap: 12px !important;
+          }
+          
+          /* Improve cards on mobile */
+          .MuiCard-root {
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+          }
+          
+          /* Better dialog sizing */
+          .MuiDialog-paper {
+            margin: 16px !important;
+            max-height: calc(100% - 32px) !important;
+            border-radius: 12px !important;
+          }
+          
+          /* Fix bottom navigation */
+          .MuiBottomNavigation-root {
+            height: 64px !important;
+          }
+          
+          /* Improve date picker on mobile */
+          .MuiPickersDay-root {
+            margin: 0 2px !important;
+          }
+          
+          /* Fix popover positioning */
+          .MuiPopover-paper {
+            max-width: calc(100% - 32px) !important;
           }
         }
       `;
@@ -491,6 +543,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               boxSizing: 'border-box', 
               width: drawerWidth,
               overflowX: 'hidden',
+              borderRadius: { xs: '0 16px 16px 0' },
+              boxShadow: 3,
+            },
+            '& .MuiBackdrop-root': {
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              backdropFilter: 'blur(4px)',
             },
           }}
         >
@@ -505,7 +563,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             '& .MuiDrawer-paper': { 
               boxSizing: 'border-box', 
               width: drawerWidth,
+              backgroundColor: theme.palette.mode === 'light' 
+                ? alpha(theme.palette.background.paper, 0.95) 
+                : alpha(theme.palette.background.paper, 0.98),
+              borderRight: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
+              boxShadow: 2,
               overflowX: 'hidden',
+              backgroundImage: theme.palette.mode === 'light' 
+                ? 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' 
+                : 'linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05))',
             },
           }}
           open
@@ -519,30 +585,31 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { xs: '100%', md: `calc(100% - ${drawerWidth}px)` },
+          width: { md: `calc(100% - ${drawerWidth}px)` },
           height: '100vh',
           overflow: 'auto',
           display: 'flex',
           flexDirection: 'column',
+          bgcolor: theme.palette.background.default,
         }}
       >
-        <Toolbar />
-        <Box 
-          sx={{ 
-            p: { xs: 1, sm: 2, md: 3 }, 
+        <Toolbar /> {/* Spacing for the app bar */}
+        <Box
+          sx={{
+            p: getContentPadding(isMobile, isSmallMobile),
             flexGrow: 1,
-            maxWidth: '100%',
-            width: '100%',
             overflow: 'auto',
+            width: '100%',
+            maxWidth: '100%',
           }}
-          className="dashboard-content"
         >
+          {/* Walkthrough tour for new users */}
+          {isAuthenticated && <WalkthroughTour />}
+          
+          {/* Main page content */}
           {children}
         </Box>
       </Box>
-      
-      {/* Walkthrough tour */}
-      <WalkthroughTour />
     </Box>
   );
 }

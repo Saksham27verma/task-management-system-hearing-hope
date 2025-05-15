@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth, hasRole } from '@/lib/auth';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 import User from '@/models/User';
 import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const status = url.searchParams.get('status');
     const taskType = url.searchParams.get('taskType');
     const searchQuery = url.searchParams.get('search');
+    const assignment = url.searchParams.get('assignment');
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
     
@@ -27,18 +28,29 @@ export async function GET(request: NextRequest) {
     // Build query
     const query: any = {};
     
-    // Apply role-based filters
-    if (user.role === 'EMPLOYEE') {
-      // Employees can only see their own tasks
-      query.assignedTo = user.userId;
-    } else if (user.role === 'MANAGER') {
-      // Managers can see tasks they assigned or tasks assigned to them
-      query.$or = [
-        { assignedBy: user.userId },
-        { assignedTo: user.userId }
-      ];
+    // Handle assignment filter (this takes precedence over role-based filters)
+    if (assignment) {
+      if (assignment === 'assignedToMe') {
+        // Show only tasks assigned to the current user
+        query.assignedTo = user.userId;
+      } else if (assignment === 'assignedByMe') {
+        // Show only tasks assigned by the current user
+        query.assignedBy = user.userId;
+      }
+    } else {
+      // Apply role-based filters if no specific assignment filter
+      if (user.role === 'EMPLOYEE') {
+        // Employees can only see their own tasks
+        query.assignedTo = user.userId;
+      } else if (user.role === 'MANAGER') {
+        // Managers can see tasks they assigned or tasks assigned to them
+        query.$or = [
+          { assignedBy: user.userId },
+          { assignedTo: user.userId }
+        ];
+      }
+      // Super admins can see all tasks, so no filter needed
     }
-    // Super admins can see all tasks, so no filter needed
     
     // Apply status filter
     if (status) {
@@ -142,50 +154,57 @@ export async function POST(request: NextRequest) {
       // Save task to database
       await newTask.save();
       
+      // Get assigner details for notifications
+      const assignerUser = await User.findById(user.userId);
+      const assignerName = assignerUser ? assignerUser.name : 'Administrator';
+      const isAssignerSuperAdmin = assignerUser && assignerUser.role === 'SUPER_ADMIN';
+      
+      // Prepare email details
+      const dueDateFormatted = new Date(dueDate);
+      
       // Send email notifications to assigned users
       try {
-        // Get assigner details for the email
-        const assignerUser = await User.findById(user.userId);
-        const assignerName = assignerUser ? assignerUser.name : 'Administrator';
-        
-        // Prepare email details
-        const dueDateFormatted = new Date(dueDate);
-        
         // Send email to each assigned user
+        const assignedUserNames = [];
+        
         for (const userId of assignedTo) {
           const assignedUser = await User.findById(userId);
           
-          if (assignedUser && assignedUser.email) {
-            const emailTemplate = emailTemplates.taskAssigned(
-              assignedUser.name,
-              title,
-              description,
-              dueDateFormatted,
-              assignerName
-            );
+          if (assignedUser) {
+            assignedUserNames.push(assignedUser.name);
             
-            await sendEmail(
-              assignedUser.email,
-              emailTemplate.subject,
-              emailTemplate.html
-            );
-            
-            // Send in-app notification to the assigned user
-            try {
-              // Directly create notification instead of using fetch
-              const newNotification = new Notification({
-                userId: userId,
-                type: 'task',
-                title: 'New Task Assigned',
-                message: `${title} is assigned to you. Due ${dueDateFormatted.toLocaleDateString()}.`,
-                link: `/dashboard/tasks/${newTask._id}`,
-                read: false,
-                createdAt: new Date()
-              });
+            if (assignedUser.email) {
+              const emailTemplate = emailTemplates.taskAssigned(
+                assignedUser.name,
+                title,
+                description,
+                dueDateFormatted,
+                assignerName
+              );
               
-              await newNotification.save();
-            } catch (notifyError) {
-              console.error('Error creating in-app notification:', notifyError);
+              await sendEmail(
+                assignedUser.email,
+                emailTemplate.subject,
+                emailTemplate.html
+              );
+              
+              // Send in-app notification to the assigned user
+              try {
+                // Directly create notification instead of using fetch
+                const newNotification = new Notification({
+                  userId: userId,
+                  type: 'task',
+                  title: 'New Task Assigned',
+                  message: `${title} is assigned to you. Due ${dueDateFormatted.toLocaleDateString()}.`,
+                  link: `/dashboard/tasks/${newTask._id}`,
+                  read: false,
+                  createdAt: new Date()
+                });
+                
+                await newNotification.save();
+              } catch (notifyError) {
+                console.error('Error creating in-app notification:', notifyError);
+              }
             }
           }
         }
@@ -214,6 +233,22 @@ export async function POST(request: NextRequest) {
         } catch (adminNotifyError) {
           console.error('Error creating admin notifications:', adminNotifyError);
         }
+        
+        // Use notifyAdmins function if the assigner is not a super admin
+        if (!isAssignerSuperAdmin) {
+          try {
+            await notifyAdmins(
+              'New Task Assigned',
+              `${assignerName} assigned a new task: ${title} to ${assignedUserNames.join(', ')}. Due on ${dueDateFormatted.toLocaleDateString()}.`,
+              assignerName,
+              'View Task',
+              `/dashboard/tasks/${newTask._id}`
+            );
+          } catch (adminEmailError) {
+            console.error('Error sending admin email notifications:', adminEmailError);
+            // Continue even if admin notification fails
+          }
+        }
       } catch (emailError) {
         console.error('Error sending task assignment emails:', emailError);
         // Continue even if email sending fails
@@ -236,34 +271,21 @@ export async function POST(request: NextRequest) {
           }).lean();
           
           // If connected and real-time sync is enabled, sync to Google Calendar
-          if (tokenRecord && tokenRecord.syncSettings.taskTypes.includes(taskType)) {
+          if (tokenRecord) {
             try {
-              // Get a valid access token (will refresh if expired)
-              const validAccessToken = await getValidAccessToken(userId.toString());
-              
-              if (!validAccessToken) {
-                console.error('Could not get a valid access token for Google Calendar sync');
-                continue; // Skip this user and try the next one
+              const accessToken = await getValidAccessToken(tokenRecord);
+              if (accessToken) {
+                await createTaskEvent(accessToken, populatedTask);
               }
-              
-              // We still create events during initial task creation
-              const eventResult = await createTaskEvent(validAccessToken, populatedTask);
-              
-              // Store the event ID in the task - for the first user only
-              // We may need to extend this to store multiple event IDs in the future
-              if (eventResult && eventResult.id && !newTask.googleCalendarEventId) {
-                newTask.googleCalendarEventId = eventResult.id;
-                await newTask.save();
-              }
-            } catch (syncError) {
-              // Log error but don't affect the main task creation response
-              console.error(`Error syncing new task to Google Calendar for user ${userId}:`, syncError);
+            } catch (calError) {
+              console.error('Error syncing task to Google Calendar:', calError);
+              // Continue even if calendar sync fails
             }
           }
         }
       } catch (calendarError) {
-        // Log error but don't affect the main task creation response
-        console.error('Error checking Google Calendar connection:', calendarError);
+        console.error('Error with calendar integration:', calendarError);
+        // Continue even if calendar operations fail
       }
       
       return NextResponse.json({
@@ -278,5 +300,5 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
-  }, 'tasks:create'); // Required permission for creating tasks
+  }, 'tasks:create');
 } 

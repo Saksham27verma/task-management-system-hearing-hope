@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo } from 'react';
 import { 
   Badge, 
   IconButton, 
@@ -10,7 +10,16 @@ import {
   Divider, 
   Box, 
   Tooltip,
-  CircularProgress 
+  CircularProgress,
+  Snackbar,
+  Alert,
+  Stack,
+  Button,
+  useMediaQuery,
+  useTheme,
+  SwipeableDrawer,
+  AppBar,
+  Toolbar
 } from '@mui/material';
 import { 
   NotificationsOutlined as NotificationsIcon,
@@ -19,13 +28,18 @@ import {
   InfoOutlined as StatusIcon,
   DoneAll as MarkReadIcon,
   DeleteOutline as ClearIcon,
-  Refresh as RefreshIcon
+  Refresh as RefreshIcon,
+  MarkChatRead as MarkChatReadIcon,
+  Done as DoneIcon,
+  Campaign as CampaignIcon,
+  NewReleases as NewReleasesIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
 import { useRouter } from 'next/navigation';
-import { useTheme } from '@mui/material/styles';
 import { formatDistanceToNow } from 'date-fns';
+import styles from './NotificationBell.module.css';
 
 // Memoize the notification bell component to prevent unnecessary rerenders
 const NotificationBell = memo(() => {
@@ -49,51 +63,106 @@ const NotificationBell = memo(() => {
   
   const router = useRouter();
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const hasRefreshedRef = useRef(false);
+  const [statusMessage, setStatusMessage] = useState<{text: string, severity: 'success' | 'error' | 'info'} | null>(null);
   
   const handleOpen = useCallback((event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+    if (isMobile) {
+      setMobileDrawerOpen(true);
+    } else {
+      setAnchorEl(event.currentTarget);
+    }
     setIsMenuOpen(true);
     
-    // Only refresh if we haven't already or if it's been more than 5 minutes
-    const shouldRefresh = !hasRefreshedRef.current || 
-      !lastSyncTime || 
-      (new Date().getTime() - lastSyncTime.getTime() > 5 * 60 * 1000);
-    
-    if (shouldRefresh && !loading) {
+    // Always refresh when opening the menu to ensure latest notifications
+    if (!loading) {
       console.log('NotificationBell: Manual refresh on menu open');
-      refreshNotifications();
+      refreshNotifications().catch(err => {
+        console.error('Failed to refresh notifications:', err);
+        setStatusMessage({
+          text: 'Failed to refresh notifications',
+          severity: 'error'
+        });
+      });
       hasRefreshedRef.current = true;
     }
-  }, [refreshNotifications, lastSyncTime, loading]);
+  }, [refreshNotifications, loading, isMobile]);
   
   const handleClose = useCallback(() => {
     setAnchorEl(null);
+    setMobileDrawerOpen(false);
     setIsMenuOpen(false);
   }, []);
   
-  const handleNotificationClick = useCallback((notification: any) => {
-    // Mark as read both locally and on server
-    markAsRead(notification.id);
-    markAsReadOnServer(notification.id);
-    
-    // Navigate to link if available
-    if (notification.link) {
-      router.push(notification.link);
+  const handleNotificationClick = useCallback(async (notification: any) => {
+    try {
+      // First mark as read on server to ensure persistence
+      await markAsReadOnServer(notification.id);
+      
+      // Then update local state
+      markAsRead(notification.id);
+      
+      // Navigate to link if available
+      if (notification.link) {
+        router.push(notification.link);
+      }
+      
+      handleClose();
+
+      // Show success message
+      setStatusMessage({
+        text: 'Notification marked as read',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+      setStatusMessage({
+        text: 'Failed to mark notification as read',
+        severity: 'error'
+      });
     }
-    
-    handleClose();
   }, [markAsRead, markAsReadOnServer, router, handleClose]);
   
-  const handleMarkAllAsRead = useCallback(() => {
-    markAllAsRead();
-    markAllAsReadOnServer();
+  const handleMarkAllAsRead = useCallback(async () => {
+    try {
+      // First mark all as read on server
+      await markAllAsReadOnServer();
+      
+      // Then update local state
+      markAllAsRead();
+      
+      setStatusMessage({
+        text: 'All notifications marked as read',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      setStatusMessage({
+        text: 'Failed to mark all notifications as read',
+        severity: 'error'
+      });
+    }
   }, [markAllAsRead, markAllAsReadOnServer]);
   
-  const handleRefresh = useCallback(() => {
-    console.log('NotificationBell: Manual refresh button clicked');
-    refreshNotifications();
+  const handleRefresh = useCallback(async () => {
+    try {
+      console.log('NotificationBell: Manual refresh button clicked');
+      await refreshNotifications();
+      
+      setStatusMessage({
+        text: 'Notifications refreshed',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+      setStatusMessage({
+        text: 'Failed to refresh notifications',
+        severity: 'error'
+      });
+    }
   }, [refreshNotifications]);
   
   // Get appropriate icon for notification type - memoize for performance
@@ -110,22 +179,306 @@ const NotificationBell = memo(() => {
     }
   }, []);
   
+  // Handle clearing notifications
+  const handleClearNotifications = useCallback(async () => {
+    try {
+      console.log('Clearing all notifications from server and local state');
+      
+      // First delete notifications from server
+      const response = await fetch('/api/notify?all=true', {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error when clearing notifications:', errorText);
+        throw new Error('Failed to clear notifications from server');
+      }
+      
+      // Then clear local state
+      clearNotifications();
+      
+      // Close the menu
+      handleClose();
+      
+      setStatusMessage({
+        text: 'All notifications cleared',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+      setStatusMessage({
+        text: 'Failed to clear notifications',
+        severity: 'error'
+      });
+    }
+  }, [clearNotifications, handleClose]);
+  
+  // Close status message
+  const handleCloseStatusMessage = () => {
+    setStatusMessage(null);
+  };
+  
   // Format last sync time
   const lastSyncText = lastSyncTime
     ? `Last updated ${formatDistanceToNow(lastSyncTime, { addSuffix: true })}`
     : 'Not synced yet';
   
-  // Don't set up auto-refresh - only manual refresh now
+  // Sort notifications - unread first, then by date
+  const sortedNotifications = useMemo(() => {
+    return [...notifications].sort((a, b) => {
+      // First sort by read status (unread first)
+      if (a.read !== b.read) {
+        return a.read ? 1 : -1;
+      }
+      // Then sort by date (newest first)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+  }, [notifications]);
+
+  // Notification content that is shared between mobile drawer and desktop menu
+  const notificationContent = (
+    <>
+      <Box sx={{ 
+        px: 2, 
+        py: 1.5, 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        position: 'sticky',
+        top: 0,
+        bgcolor: theme.palette.background.paper,
+        zIndex: 1,
+        borderBottom: `1px solid ${theme.palette.divider}`
+      }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+          Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
+        </Typography>
+        <Box>
+          <Tooltip title="Refresh">
+            <IconButton 
+              size="small" 
+              onClick={handleRefresh}
+              disabled={loading}
+              sx={{ mr: 1 }}
+            >
+              {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Mark all as read">
+            <IconButton 
+              size="small" 
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0 || loading}
+              sx={{ mr: 1 }}
+            >
+              <MarkReadIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Clear all">
+            <IconButton 
+              size="small" 
+              onClick={handleClearNotifications}
+              disabled={notifications.length === 0 || loading}
+            >
+              <ClearIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {isMobile && (
+            <Tooltip title="Close">
+              <IconButton 
+                size="small" 
+                onClick={handleClose}
+                sx={{ ml: 1 }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
+      </Box>
+      
+      {error && (
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Typography variant="body2" color="error">
+            {error}
+          </Typography>
+        </Box>
+      )}
+      
+      {loading && notifications.length === 0 && (
+        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
+      
+      {!loading && notifications.length === 0 && (
+        <Box sx={{ 
+          p: 4, 
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: isMobile ? '40vh' : 'auto'
+        }}>
+          <NotificationsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="body1" color="text.secondary">
+            No notifications
+          </Typography>
+          <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+            You're all caught up!
+          </Typography>
+        </Box>
+      )}
+      
+      {sortedNotifications.length > 0 && (
+        <Box 
+          sx={{ maxHeight: isMobile ? '70vh' : 'auto', overflow: 'auto' }}
+          className={styles.notificationList}
+        >
+          {sortedNotifications.map((notification, index) => (
+            <React.Fragment key={`notification-fragment-${notification.id}`}>
+              <MenuItem 
+                key={`notification-${notification.id}`}
+                onClick={() => handleNotificationClick(notification)}
+                className={styles.touchFeedback}
+                sx={{ 
+                  py: 1.5,
+                  backgroundColor: !notification.read 
+                    ? theme.palette.mode === 'dark' 
+                      ? 'rgba(255, 255, 255, 0.08)' 
+                      : 'rgba(0, 0, 0, 0.04)'
+                    : 'transparent',
+                  position: 'relative',
+                  '&::before': !notification.read ? {
+                    content: '""',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    bottom: 0,
+                    width: '4px',
+                    backgroundColor: theme.palette.primary.main,
+                    borderTopLeftRadius: '4px',
+                    borderBottomLeftRadius: '4px'
+                  } : {}
+                }}
+              >
+                <Stack direction="row" spacing={1} width="100%">
+                  <ListItemIcon sx={{ 
+                    minWidth: { xs: '32px', sm: '40px' },
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    mt: 0.5
+                  }}>
+                    {getNotificationIcon(notification.type)}
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={
+                      <Typography variant="body2" sx={{ 
+                        fontWeight: !notification.read ? 'bold' : 'normal',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap'
+                      }}>
+                        {notification.title}
+                        {!notification.read && (
+                          <Box component="span" sx={{ 
+                            ml: 1, 
+                            px: 0.75, 
+                            py: 0.25, 
+                            bgcolor: 'primary.main', 
+                            color: 'white', 
+                            borderRadius: 1,
+                            fontSize: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            whiteSpace: 'nowrap'
+                          }}
+                          className={styles.newBadge}
+                          >
+                            <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
+                            NEW
+                          </Box>
+                        )}
+                      </Typography>
+                    }
+                    secondary={
+                      <React.Fragment>
+                        <Typography 
+                          variant="caption" 
+                          color="textSecondary" 
+                          component="div" 
+                          className={styles.notificationMessage}
+                        >
+                          {notification.message}
+                        </Typography>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          mt: 0.5,
+                          justifyContent: 'space-between'
+                        }}>
+                          <Typography 
+                            variant="caption" 
+                            color="textSecondary" 
+                            component="span"
+                          >
+                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                          </Typography>
+                          {notification.read && (
+                            <Box component="span" sx={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center',
+                              color: 'success.main',
+                              fontSize: '0.75rem'
+                            }}>
+                              <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
+                              Read
+                            </Box>
+                          )}
+                        </Box>
+                      </React.Fragment>
+                    }
+                    sx={{ m: 0 }}
+                  />
+                </Stack>
+              </MenuItem>
+              {index < sortedNotifications.length - 1 && (
+                <Divider key={`divider-${notification.id}`} />
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
+      )}
+      
+      <Box sx={{ 
+        p: 1, 
+        textAlign: 'center', 
+        borderTop: `1px solid ${theme.palette.divider}`,
+        position: 'sticky',
+        bottom: 0,
+        bgcolor: theme.palette.background.paper
+      }}>
+        <Typography variant="caption" color="text.secondary">
+          {lastSyncText}
+        </Typography>
+      </Box>
+    </>
+  );
   
   return (
     <>
-      <Tooltip title="Notifications">
+      <Tooltip title={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}>
         <IconButton
           size="large"
           color="inherit"
           onClick={handleOpen}
+          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
+          data-testid="notification-bell"
           sx={{
-            mr: 2,
+            position: 'relative',
             transition: 'transform 0.2s',
             '&:hover': { transform: 'scale(1.1)' },
           }}
@@ -135,13 +488,11 @@ const NotificationBell = memo(() => {
             color="error"
             sx={{
               '& .MuiBadge-badge': {
-                animation: unreadCount > 0 ? 'pulse 1.5s infinite' : 'none',
-                '@keyframes pulse': {
-                  '0%': { transform: 'scale(1)' },
-                  '50%': { transform: 'scale(1.2)' },
-                  '100%': { transform: 'scale(1)' },
-                },
+                animation: unreadCount > 0 ? `${styles.pulse} 1.5s infinite` : 'none',
               }
+            }}
+            classes={{
+              badge: unreadCount > 0 ? styles.notificationCount : ''
             }}
           >
             <NotificationsIcon />
@@ -149,128 +500,111 @@ const NotificationBell = memo(() => {
         </IconButton>
       </Tooltip>
       
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleClose}
-        PaperProps={{
-          sx: {
-            width: 350,
-            maxHeight: 400,
-            mt: 1.5,
-            overflow: 'auto',
-          }
+      {/* Desktop dropdown menu */}
+      {!isMobile && (
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleClose}
+          PaperProps={{
+            sx: {
+              width: 350,
+              maxHeight: 'calc(100vh - 100px)',
+              mt: 1.5,
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: 3,
+              borderRadius: 1,
+            }
+          }}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'right',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'right',
+          }}
+        >
+          {notificationContent}
+        </Menu>
+      )}
+      
+      {/* Mobile drawer for notifications */}
+      {isMobile && (
+        <SwipeableDrawer
+          anchor="bottom"
+          open={mobileDrawerOpen}
+          onClose={handleClose}
+          onOpen={() => setMobileDrawerOpen(true)}
+          disableSwipeToOpen={false}
+          swipeAreaWidth={15}
+          ModalProps={{
+            keepMounted: true,
+          }}
+          PaperProps={{
+            sx: {
+              height: 'auto',
+              maxHeight: '90vh',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              overflow: 'hidden',
+            }
+          }}
+        >
+          {/* Drag handle for mobile */}
+          <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex', 
+              justifyContent: 'center', 
+              p: 1 
+            }}
+          >
+            <Box 
+              sx={{ 
+                width: 40, 
+                height: 5, 
+                borderRadius: 5, 
+                backgroundColor: theme.palette.grey[300] 
+              }} 
+              className={styles.swipeHandle}
+            />
+          </Box>
+          {notificationContent}
+        </SwipeableDrawer>
+      )}
+      
+      {/* Status message snackbar */}
+      <Snackbar
+        open={statusMessage !== null}
+        autoHideDuration={3000}
+        onClose={handleCloseStatusMessage}
+        anchorOrigin={{ 
+          vertical: 'bottom', 
+          horizontal: isMobile ? 'center' : 'right'
         }}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'right',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'right',
+        sx={{
+          bottom: isMobile ? '16px !important' : undefined,
         }}
       >
-        <Box sx={{ px: 2, py: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-            Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
-          </Typography>
-          <Box>
-            <Tooltip title="Refresh">
-              <IconButton 
-                size="small" 
-                onClick={handleRefresh}
-                disabled={loading}
-                sx={{ mr: 1 }}
-              >
-                {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Mark all as read">
-              <IconButton 
-                size="small" 
-                onClick={handleMarkAllAsRead}
-                disabled={unreadCount === 0 || loading}
-                sx={{ mr: 1 }}
-              >
-                <MarkReadIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Clear all">
-              <IconButton 
-                size="small" 
-                onClick={clearNotifications}
-                disabled={notifications.length === 0 || loading}
-              >
-                <ClearIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
-        
-        <Divider />
-        
-        {error && (
-          <Box sx={{ p: 2, textAlign: 'center' }}>
-            <Typography variant="body2" color="error">
-              {error}
-            </Typography>
-          </Box>
+        {statusMessage && (
+          <Alert
+            onClose={handleCloseStatusMessage}
+            severity={statusMessage.severity}
+            variant="filled"
+            elevation={6}
+            sx={{ 
+              width: '100%',
+              boxShadow: 2,
+              borderRadius: 1,
+            }}
+          >
+            {statusMessage.text}
+          </Alert>
         )}
-        
-        {notifications.length > 0 ? (
-          notifications.map((notification, index) => (
-            <React.Fragment key={notification.id}>
-              <MenuItem 
-                onClick={() => handleNotificationClick(notification)}
-                sx={{ 
-                  py: 1.5,
-                  backgroundColor: !notification.read 
-                    ? theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.08)' 
-                      : 'rgba(0, 0, 0, 0.04)'
-                    : 'transparent'
-                }}
-              >
-                <ListItemIcon>
-                  {getNotificationIcon(notification.type)}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={
-                    <Typography variant="body2" sx={{ fontWeight: !notification.read ? 'bold' : 'normal' }}>
-                      {notification.title}
-                    </Typography>
-                  }
-                  secondary={
-                    <React.Fragment>
-                      <Typography variant="caption" color="textSecondary" component="span" sx={{ display: 'block' }}>
-                        {notification.message}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary" component="span" sx={{ display: 'block', mt: 0.5 }}>
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                      </Typography>
-                    </React.Fragment>
-                  }
-                />
-              </MenuItem>
-              {index < notifications.length - 1 && <Divider />}
-            </React.Fragment>
-          ))
-        ) : (
-          <Box sx={{ py: 2, textAlign: 'center' }}>
-            <Typography variant="body2" color="textSecondary">
-              No notifications
-            </Typography>
-          </Box>
-        )}
-        
-        <Divider />
-        
-        <Box sx={{ p: 1, textAlign: 'center' }}>
-          <Typography variant="caption" color="textSecondary">
-            {lastSyncText}
-          </Typography>
-        </Box>
-      </Menu>
+      </Snackbar>
     </>
   );
 });

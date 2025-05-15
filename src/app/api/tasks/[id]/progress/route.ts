@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth } from '@/lib/auth';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 import User from '@/models/User';
 import { formatDateHuman } from '@/utils/dates';
 import { format, isValid, isSameDay, getDay, addDays } from 'date-fns';
@@ -118,6 +118,29 @@ export async function POST(
       // Save the task
       await task.save();
       
+      // Get user information for notifications
+      const userMakingUpdate = await User.findById(user.userId);
+      const userName = userMakingUpdate ? userMakingUpdate.name : 'A user';
+      
+      // Format the date for display in the email
+      const formattedDate = formatDateHuman(updateDate);
+      
+      // Get the custom formatted date based on task type
+      let customDateInfo = '';
+      if (task.taskType === 'DAILY') {
+        customDateInfo = `Daily Task - ${formattedDate}`;
+      } else if (task.taskType === 'WEEKLY') {
+        customDateInfo = `Weekly Task - Week of ${format(updateDate, 'MMM d, yyyy')}`;
+      } else if (task.taskType === 'MONTHLY') {
+        customDateInfo = `Monthly Task - Month of ${format(updateDate, 'MMMM yyyy')}`;
+      } else if (task.taskType === 'DAILY_RECURRING') {
+        customDateInfo = `Daily Recurring Task - ${formattedDate}`;
+      } else if (task.taskType === 'WEEKLY_RECURRING') {
+        customDateInfo = `Weekly Recurring Task - Week of ${format(updateDate, 'MMM d, yyyy')}`;
+      } else if (task.taskType === 'MONTHLY_RECURRING') {
+        customDateInfo = `Monthly Recurring Task - Month of ${format(updateDate, 'MMMM yyyy')}`;
+      }
+      
       // Notify task assigner about the progress update
       try {
         const assignerUser = await User.findById(task.assignedBy);
@@ -127,22 +150,6 @@ export async function POST(
           assignerUser.email && 
           assignerUser._id.toString() !== user.userId
         ) {
-          const userMakingUpdate = await User.findById(user.userId);
-          const userName = userMakingUpdate ? userMakingUpdate.name : 'A user';
-          
-          // Format the date for display in the email
-          const formattedDate = formatDateHuman(updateDate);
-          
-          // Get the custom formatted date based on task type
-          let customDateInfo = '';
-          if (task.taskType === 'DAILY') {
-            customDateInfo = `Daily Task - ${formattedDate}`;
-          } else if (task.taskType === 'WEEKLY') {
-            customDateInfo = `Weekly Task - Week of ${format(updateDate, 'MMM d, yyyy')}`;
-          } else if (task.taskType === 'MONTHLY') {
-            customDateInfo = `Monthly Task - Month of ${format(updateDate, 'MMMM yyyy')}`;
-          }
-          
           // Create a simple email about the progress update
           await sendEmail(
             assignerUser.email,
@@ -167,6 +174,20 @@ export async function POST(
       } catch (emailError) {
         console.error('Error sending progress update notification:', emailError);
         // Continue even if email fails
+      }
+      
+      // Notify all super admins about the progress update
+      try {
+        await notifyAdmins(
+          'Task Progress Update',
+          `Task '${task.title}' has a new progress update: ${progress.substring(0, 100)}${progress.length > 100 ? '...' : ''}`,
+          userName,
+          'View Task',
+          `/dashboard/tasks/${task._id}`
+        );
+      } catch (adminNotifyError) {
+        console.error('Error notifying admins about progress update:', adminNotifyError);
+        // Continue even if notification fails
       }
       
       return NextResponse.json({

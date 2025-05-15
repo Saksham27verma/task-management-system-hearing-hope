@@ -1,110 +1,100 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/auth';
 import connectToDatabase from '@/lib/db';
-import User from '@/models/User';
 import Notification from '@/models/Notification';
+import { ObjectId } from 'mongodb';
 
-// POST /api/notify - Store a notification for a user
+// POST /api/notify - Create a notification
 export async function POST(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
-      // Parse the request body
-      const { userId, notification } = await request.json();
-      
+      const { userId, type, title, message, link } = await request.json();
+
       // Validate required fields
-      if (!userId || !notification || !notification.type || !notification.title || !notification.message) {
+      if (!userId || !type || !title || !message) {
         return NextResponse.json(
           { success: false, message: 'Missing required fields' },
           { status: 400 }
         );
       }
-      
-      // Validate notification type
-      if (!['task', 'notice', 'status'].includes(notification.type)) {
-        return NextResponse.json(
-          { success: false, message: 'Invalid notification type' },
-          { status: 400 }
-        );
-      }
-      
+
+      // Connect to the database
       await connectToDatabase();
-      
-      // Check if the user exists
-      const targetUser = await User.findById(userId);
-      if (!targetUser) {
-        return NextResponse.json(
-          { success: false, message: 'User not found' },
-          { status: 404 }
-        );
-      }
-      
-      // Role-based security check - Only allow SUPER_ADMINs or self to store notifications
-      if (user.role !== 'SUPER_ADMIN' && user.userId !== userId) {
-        return NextResponse.json(
-          { success: false, message: 'Not authorized to send notifications to this user' },
-          { status: 403 }
-        );
-      }
-      
-      // Create and save the notification
+
+      // Save the notification
       const newNotification = new Notification({
         userId,
-        type: notification.type,
-        title: notification.title,
-        message: notification.message,
-        link: notification.link || null,
+        type,
+        title,
+        message,
+        link,
         read: false,
         createdAt: new Date()
       });
-      
+
       await newNotification.save();
-      
-      return NextResponse.json({
-        success: true,
-        message: 'Notification stored successfully',
-        notification: newNotification
-      });
-    } catch (error) {
-      console.error('Error storing notification:', error);
+
       return NextResponse.json(
-        { success: false, message: 'Failed to store notification' },
+        { 
+          success: true, 
+          message: 'Notification created',
+          notificationId: newNotification._id
+        }
+      );
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      return NextResponse.json(
+        { success: false, message: 'Failed to create notification' },
         { status: 500 }
       );
     }
   });
 }
 
-// GET /api/notify - Get notifications for the current user
+// GET /api/notify - Get notifications for current user
 export async function GET(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
-      const url = new URL(request.url);
-      const limit = parseInt(url.searchParams.get('limit') || '20');
-      const unreadOnly = url.searchParams.get('unreadOnly') === 'true';
+      const userId = user.userId;
+      
+      console.log(`Fetching notifications for user: ${userId}`);
       
       await connectToDatabase();
       
-      // Build query
-      const query: any = { userId: user.userId };
+      // Auto-cleanup: Delete old notifications (older than 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      // Filter by read status if requested
-      if (unreadOnly) {
-        query.read = false;
+      try {
+        const deleteResult = await Notification.deleteMany({
+          userId,
+          createdAt: { $lt: thirtyDaysAgo }
+        });
+        
+        if (deleteResult.deletedCount > 0) {
+          console.log(`Cleaned up ${deleteResult.deletedCount} old notifications for user ${userId}`);
+        }
+      } catch (cleanupError) {
+        console.error('Error cleaning up old notifications:', cleanupError);
+        // Continue with fetching even if cleanup fails
       }
       
-      // Get notifications
-      const notifications = await Notification.find(query)
-        .sort({ createdAt: -1 })  // Newest first
-        .limit(limit);
-      
-      // Get unread count
+      // Get all notifications for this user (both read and unread)
+      const notifications = await Notification.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(50)  // Increased from 20 to 50
+        .exec();
+        
+      // Count unread notifications
       const unreadCount = await Notification.countDocuments({ 
-        userId: user.userId,
-        read: false
+        userId, 
+        read: false 
       });
       
-      return NextResponse.json({
-        success: true,
+      console.log(`Found ${notifications.length} notifications, ${unreadCount} unread`);
+      
+      return NextResponse.json({ 
+        success: true, 
         notifications,
         unreadCount
       });
@@ -118,88 +108,43 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// PUT /api/notify/read - Mark notifications as read
-export async function PUT(request: NextRequest) {
-  return withAuth(request, async (user) => {
-    try {
-      const { notificationIds, markAll } = await request.json();
-      
-      await connectToDatabase();
-      
-      if (markAll) {
-        // Mark all notifications as read for this user
-        await Notification.updateMany(
-          { userId: user.userId, read: false },
-          { read: true }
-        );
-        
-        return NextResponse.json({
-          success: true,
-          message: 'All notifications marked as read'
-        });
-      } else if (notificationIds && Array.isArray(notificationIds)) {
-        // Mark specific notifications as read
-        await Notification.updateMany(
-          { 
-            _id: { $in: notificationIds },
-            userId: user.userId // Security check - only allow updating own notifications
-          },
-          { read: true }
-        );
-        
-        return NextResponse.json({
-          success: true,
-          message: 'Notifications marked as read'
-        });
-      } else {
-        return NextResponse.json(
-          { success: false, message: 'Invalid request parameters' },
-          { status: 400 }
-        );
-      }
-    } catch (error) {
-      console.error('Error marking notifications as read:', error);
-      return NextResponse.json(
-        { success: false, message: 'Failed to mark notifications as read' },
-        { status: 500 }
-      );
-    }
-  });
-}
-
 // DELETE /api/notify - Delete notifications
 export async function DELETE(request: NextRequest) {
   return withAuth(request, async (user) => {
     try {
-      const { notificationIds, deleteAll } = await request.json();
+      const url = new URL(request.url);
+      const notificationId = url.searchParams.get('id');
+      const deleteAll = url.searchParams.get('all') === 'true';
+      const userId = user.userId;
       
       await connectToDatabase();
       
+      let deleteCount = 0;
+      
       if (deleteAll) {
         // Delete all notifications for this user
-        await Notification.deleteMany({ userId: user.userId });
-        
-        return NextResponse.json({
-          success: true,
-          message: 'All notifications deleted'
+        const result = await Notification.deleteMany({ userId });
+        deleteCount = result.deletedCount || 0;
+        console.log(`Deleted all (${deleteCount}) notifications for user ${userId}`);
+      } else if (notificationId) {
+        // Delete a specific notification
+        const result = await Notification.deleteOne({
+          _id: new ObjectId(notificationId),
+          userId
         });
-      } else if (notificationIds && Array.isArray(notificationIds)) {
-        // Delete specific notifications
-        await Notification.deleteMany({ 
-          _id: { $in: notificationIds },
-          userId: user.userId // Security check - only allow deleting own notifications
-        });
-        
-        return NextResponse.json({
-          success: true,
-          message: 'Notifications deleted'
-        });
+        deleteCount = result.deletedCount || 0;
+        console.log(`Deleted notification ${notificationId} for user ${userId}`);
       } else {
         return NextResponse.json(
-          { success: false, message: 'Invalid request parameters' },
+          { success: false, message: 'Missing id or all parameter' },
           { status: 400 }
         );
       }
+      
+      return NextResponse.json({ 
+        success: true, 
+        message: `${deleteCount} notification(s) deleted` 
+      });
     } catch (error) {
       console.error('Error deleting notifications:', error);
       return NextResponse.json(

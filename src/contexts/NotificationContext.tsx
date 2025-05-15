@@ -1,20 +1,33 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
-interface Notification {
+// Interface for notifications
+export interface Notification {
   id: string;
   type: 'task' | 'notice' | 'status';
   title: string;
   message: string;
-  createdAt: Date;
-  read: boolean;
   link?: string;
+  read: boolean;
+  createdAt: Date;
 }
+
+// Notification partial type for adding notifications
+export type PartialNotification = {
+  id?: string;
+  type: 'task' | 'notice' | 'status';
+  title: string;
+  message: string;
+  link?: string;
+  read?: boolean;
+  createdAt?: Date;
+};
 
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
+  addNotification: (notification: PartialNotification) => void;
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearNotifications: () => void;
@@ -30,7 +43,7 @@ export const useNotifications = () => {
   return context;
 };
 
-export const NotificationProvider = ({ children }: { children: ReactNode }) => {
+export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const { user } = useAuth();
   
@@ -39,116 +52,162 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     return notifications.filter(n => !n.read).length;
   }, [notifications]);
 
-  // TEMPORARILY COMMENTED OUT - localStorage operations may be causing issues
-  // Load notifications from localStorage on mount or when user changes
-  /*
+  // Load notifications from localStorage on mount
   useEffect(() => {
-    if (user) {
-      try {
-        const savedNotifications = localStorage.getItem(`notifications_${user.id}`);
-        if (savedNotifications) {
-          const parsed = JSON.parse(savedNotifications);
-          // Convert string dates back to Date objects
-          const notificationsWithDates = parsed.map((n: any) => ({
-            ...n,
-            createdAt: new Date(n.createdAt)
-          }));
-          setNotifications(notificationsWithDates);
+    const loadNotifications = () => {
+      // Check if notifications were recently cleared
+      const lastClearedTime = localStorage.getItem('notifications_last_cleared');
+      if (lastClearedTime) {
+        const clearTimestamp = parseInt(lastClearedTime, 10);
+        // If notifications were cleared in the last minute, don't load from localStorage
+        if (Date.now() - clearTimestamp < 60000) {
+          console.log('Skip loading from localStorage - notifications were recently cleared');
+          return;
         }
-      } catch (error) {
-        console.error('Failed to parse notifications from localStorage', error);
       }
-    } else {
-      // Clear notifications when user logs out
-      setNotifications([]);
-    }
-  }, [user]);
-  */
-
-  // TEMPORARILY COMMENTED OUT - localStorage operations may be causing issues
-  // Save notifications to localStorage when they change, but debounce to avoid too many updates
-  /*
-  useEffect(() => {
-    if (!user) return;
-    
-    // Only save if we have notifications and a user
-    if (user && notifications.length > 0) {
-      // Use a timeout to debounce localStorage writes
-      const timeoutId = setTimeout(() => {
-        try {
-          localStorage.setItem(`notifications_${user.id}`, JSON.stringify(notifications));
-        } catch (error) {
-          console.error('Failed to save notifications to localStorage', error);
-        }
-      }, 500);
       
-      return () => clearTimeout(timeoutId);
-    }
-  }, [notifications, user]);
-  */
-
-  // Just clear notifications when user changes
-  useEffect(() => {
-    if (!user) {
-      setNotifications([]);
-    }
-  }, [user]);
-
-  // Add a new notification - use callback to stabilize the function reference
-  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt' | 'read'>) => {
-    console.log('Adding notification:', notification);
-    const newNotification: Notification = {
-      ...notification,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      read: false
+      const savedNotifications = localStorage.getItem('notifications');
+      if (savedNotifications) {
+        try {
+          // Parse the JSON and convert date strings back to Date objects
+          const parsed = JSON.parse(savedNotifications);
+          
+          // If the saved notifications array is empty, don't proceed
+          if (!parsed || parsed.length === 0) {
+            console.log('No notifications found in localStorage or empty array');
+            return;
+          }
+          
+          const notificationsWithDates = parsed.map((notif: any) => ({
+            ...notif,
+            createdAt: new Date(notif.createdAt)
+          }));
+          console.log(`Loaded ${notificationsWithDates.length} notifications from localStorage`);
+          setNotifications(notificationsWithDates);
+        } catch (error) {
+          console.error('Error parsing notifications from localStorage:', error);
+          localStorage.removeItem('notifications');
+        }
+      } else {
+        console.log('No saved notifications found in localStorage');
+      }
     };
     
-    setNotifications(prev => {
-      // Check if a similar notification already exists (avoid duplicates)
-      const isDuplicate = prev.some(n => 
-        n.type === notification.type && 
-        n.title === notification.title && 
-        n.message === notification.message &&
-        // Consider it a duplicate if created in the last minute
-        (new Date().getTime() - new Date(n.createdAt).getTime() < 60000)
-      );
-      
-      if (isDuplicate) {
-        console.log('Duplicate notification detected - skipping');
-        return prev;
-      }
-      
-      return [newNotification, ...prev];
-    });
+    loadNotifications();
   }, []);
 
+  // Save notifications to localStorage when they change
+  useEffect(() => {
+    // Only save if there are notifications to save
+    if (notifications.length > 0) {
+      console.log(`Saving ${notifications.length} notifications to localStorage`);
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+    } else {
+      // If notifications array is empty, remove from localStorage
+      console.log('Removing notifications from localStorage (empty array)');
+      localStorage.removeItem('notifications');
+    }
+  }, [notifications]);
+
+  // Add a new notification
+  const addNotification = (notification: PartialNotification) => {
+    const isServerNotification = !!notification.id && !!notification.createdAt;
+    
+    console.log(`Adding ${isServerNotification ? 'server' : 'local'} notification:`, {
+      id: notification.id || 'to be generated',
+      type: notification.type,
+      title: notification.title,
+      read: notification.read !== undefined ? notification.read : false
+    });
+    
+    setNotifications(prevNotifications => {
+      // If this notification has an ID, check if it already exists
+      if (notification.id) {
+        const existingNotification = prevNotifications.find(n => n.id === notification.id);
+        if (existingNotification) {
+          console.log(`Notification with ID ${notification.id} already exists, updating`);
+          // Update the existing notification, preserving the read status from server
+          return prevNotifications.map(n => 
+            n.id === notification.id 
+              ? {
+                  ...n,
+                  type: notification.type,
+                  title: notification.title,
+                  message: notification.message,
+                  link: notification.link !== undefined ? notification.link : n.link,
+                  read: notification.read !== undefined ? notification.read : n.read,
+                  createdAt: notification.createdAt || n.createdAt
+                }
+              : n
+          );
+        }
+      }
+      
+      // Check for duplicate notifications (similar content within last minute)
+      // Skip this check for server notifications which should be trusted
+      if (!isServerNotification) {
+        const oneMinuteAgo = new Date(Date.now() - 60000);
+        const isDuplicate = prevNotifications.some(
+          n => 
+            n.type === notification.type &&
+            n.title === notification.title &&
+            n.message === notification.message &&
+            n.createdAt > oneMinuteAgo
+        );
+        
+        if (isDuplicate) {
+          console.log('Skipping duplicate notification created within the last minute');
+          return prevNotifications;
+        }
+      }
+      
+      // Create a new notification
+      const newNotification: Notification = {
+        id: notification.id || uuidv4(),
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        link: notification.link,
+        read: notification.read !== undefined ? notification.read : false,
+        createdAt: notification.createdAt || new Date()
+      };
+      
+      console.log('Adding new notification:', newNotification);
+      return [...prevNotifications, newNotification];
+    });
+  };
+
   // Mark a notification as read
-  const markAsRead = useCallback((id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
+  const markAsRead = (id: string) => {
+    console.log(`Marking notification as read: ${id}`);
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => 
         notification.id === id 
           ? { ...notification, read: true } 
           : notification
       )
     );
-  }, []);
+  };
 
   // Mark all notifications as read
-  const markAllAsRead = useCallback(() => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
+  const markAllAsRead = () => {
+    console.log('Marking all notifications as read');
+    setNotifications(prevNotifications => 
+      prevNotifications.map(notification => ({ ...notification, read: true }))
     );
-  }, []);
+  };
 
   // Clear all notifications
-  const clearNotifications = useCallback(() => {
+  const clearNotifications = () => {
+    console.log('Clearing all notifications');
     setNotifications([]);
-    // Disable localStorage operations for now
-    // if (user) {
-    //   localStorage.removeItem(`notifications_${user.id}`);
-    // }
-  }, []);
+    
+    // Set a timestamp when notifications were cleared
+    localStorage.setItem('notifications_last_cleared', Date.now().toString());
+    
+    // Also remove notifications from localStorage to prevent them from reappearing
+    localStorage.removeItem('notifications');
+  };
 
   // Memoize the context value to prevent unnecessary rerenders
   const value = useMemo(() => ({

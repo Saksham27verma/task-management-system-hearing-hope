@@ -4,7 +4,7 @@ import Message from '@/models/Message';
 import User from '@/models/User';
 import Task from '@/models/Task';
 import { withAuth } from '@/lib/auth';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 
 // GET /api/messages - Get messages for current user
 export async function GET(request: NextRequest) {
@@ -170,12 +170,13 @@ export async function POST(request: NextRequest) {
       // Save message to database
       await newMessage.save();
       
+      // Get sender information for notifications
+      const sender = await User.findById(user.userId);
+      const senderName = sender ? sender.name : 'A colleague';
+      
       // Send email notification to recipient
       try {
         if (recipient.email) {
-          const sender = await User.findById(user.userId);
-          const senderName = sender ? sender.name : 'A colleague';
-          
           // Create message preview (first 100 characters)
           const messagePreview = content.length > 100 
             ? content.substring(0, 100) 
@@ -197,6 +198,27 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error('Error sending message notification:', emailError);
         // Continue even if email fails
+      }
+      
+      // Notify all super admins about the new message
+      try {
+        // Determine if the sender or recipient is a super admin to avoid duplicate notifications
+        const isSenderSuperAdmin = sender && sender.role === 'SUPER_ADMIN';
+        const isRecipientSuperAdmin = recipient && recipient.role === 'SUPER_ADMIN';
+        
+        // Only notify if neither the sender nor recipient is a super admin
+        if (!isSenderSuperAdmin && !isRecipientSuperAdmin) {
+          await notifyAdmins(
+            'New Message Sent',
+            `${senderName} sent a message to ${recipient.name}: ${subject}`,
+            senderName,
+            'View Messages',
+            `/dashboard/messages`
+          );
+        }
+      } catch (adminNotifyError) {
+        console.error('Error notifying admins about new message:', adminNotifyError);
+        // Continue even if notification fails
       }
       
       return NextResponse.json({

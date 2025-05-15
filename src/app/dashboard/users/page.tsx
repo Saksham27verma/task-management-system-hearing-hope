@@ -30,7 +30,10 @@ import {
   CircularProgress,
   Alert,
   Snackbar,
-  Tooltip
+  Tooltip,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -40,7 +43,8 @@ import {
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
-  Lock as LockIcon
+  Lock as LockIcon,
+  MoreVert as MoreVertIcon
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
 import { SelectChangeEvent } from '@mui/material/Select';
@@ -78,7 +82,11 @@ export default function UsersPage() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-
+  
+  // Action menu state
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [actionMenuUser, setActionMenuUser] = useState<User | null>(null);
+  
   // Pagination states
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -308,7 +316,43 @@ export default function UsersPage() {
     setSelectedUser(user);
     setOpenDeleteDialog(true);
   };
-
+  
+  // Handle delete user (permanent deletion)
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/users/${selectedUser._id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSnackbar({
+          open: true,
+          message: 'User deleted successfully',
+          severity: 'success'
+        });
+        handleDialogClose();
+        fetchUsers();
+      } else {
+        throw new Error(data.message || 'Failed to delete user');
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      setSnackbar({
+        open: true,
+        message: error.message || 'An error occurred while deleting the user',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Handle save user (add or edit)
   const handleSaveUser = async () => {
     if (!validateForm()) {
@@ -370,8 +414,8 @@ export default function UsersPage() {
       setIsLoading(false);
     }
   };
-
-  // Handle user deactivation/activation
+  
+  // Handle user deactivation/activation (separate from permanent deletion)
   const handleToggleUserStatus = async () => {
     if (!selectedUser) return;
     
@@ -459,6 +503,17 @@ export default function UsersPage() {
   // Add a function to handle permissions navigation
   const handleManagePermissions = (userId: string) => {
     router.push(`/dashboard/permissions?userId=${userId}`);
+  };
+
+  // Action menu handlers
+  const handleActionMenuOpen = (event: React.MouseEvent<HTMLElement>, user: User) => {
+    setActionMenuAnchor(event.currentTarget);
+    setActionMenuUser(user);
+  };
+  
+  const handleActionMenuClose = () => {
+    setActionMenuAnchor(null);
+    setActionMenuUser(null);
   };
 
   return (
@@ -598,40 +653,20 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>{formatDate(user.lastLogin)}</TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                           <IconButton 
                             size="small" 
-                            color="primary" 
-                            onClick={() => handleEditDialogOpen(user)}
-                            disabled={!currentUser || currentUser.role !== 'SUPER_ADMIN'}
+                            aria-label="actions"
+                            aria-controls="user-actions-menu"
+                            aria-haspopup="true"
+                            onClick={(event) => handleActionMenuOpen(event, user)}
+                            sx={{
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              padding: '4px'
+                            }}
                           >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="secondary" 
-                            onClick={() => handleManagePermissions(user._id)}
-                            disabled={true}
-                            title="Permissions (Coming Soon)"
-                          >
-                            <Tooltip title="Feature under development - Coming soon">
-                              <span>
-                                <LockIcon fontSize="small" />
-                              </span>
-                            </Tooltip>
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            color="error" 
-                            onClick={() => handleDeleteDialogOpen(user)}
-                            disabled={
-                              !currentUser || 
-                              currentUser.role !== 'SUPER_ADMIN' || 
-                              user._id === currentUser.id || 
-                              user.role === 'SUPER_ADMIN'
-                            }
-                          >
-                            <DeleteIcon fontSize="small" />
+                            <MoreVertIcon fontSize="small" />
                           </IconButton>
                         </Box>
                       </TableCell>
@@ -641,6 +676,87 @@ export default function UsersPage() {
             </TableBody>
           </Table>
         </TableContainer>
+        
+        {/* Actions Menu */}
+        <Menu
+          id="user-actions-menu"
+          anchorEl={actionMenuAnchor}
+          open={Boolean(actionMenuAnchor)}
+          onClose={handleActionMenuClose}
+          PaperProps={{
+            elevation: 3,
+            sx: {
+              overflow: 'visible',
+              mt: 1.5,
+              '&:before': {
+                content: '""',
+                display: 'block',
+                position: 'absolute',
+                top: 0,
+                right: 14,
+                width: 10,
+                height: 10,
+                bgcolor: 'background.paper',
+                transform: 'translateY(-50%) rotate(45deg)',
+                zIndex: 0,
+              },
+            },
+          }}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <MenuItem
+            onClick={() => {
+              if (actionMenuUser) handleEditDialogOpen(actionMenuUser);
+              handleActionMenuClose();
+            }}
+            disabled={!currentUser || currentUser.role !== 'SUPER_ADMIN'}
+          >
+            <ListItemIcon>
+              <EditIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText>Edit User</ListItemText>
+          </MenuItem>
+          
+          <MenuItem
+            onClick={() => {
+              if (actionMenuUser) handleManagePermissions(actionMenuUser._id);
+              handleActionMenuClose();
+            }}
+            disabled={true}
+          >
+            <ListItemIcon>
+              <LockIcon fontSize="small" color="secondary" />
+            </ListItemIcon>
+            <ListItemText>Manage Permissions</ListItemText>
+          </MenuItem>
+          
+          <MenuItem
+            onClick={() => {
+              if (actionMenuUser) handleDeleteDialogOpen(actionMenuUser);
+              handleActionMenuClose();
+            }}
+            disabled={
+              !actionMenuUser ||
+              !currentUser || 
+              currentUser.role !== 'SUPER_ADMIN' || 
+              (actionMenuUser && actionMenuUser._id === currentUser.id) || 
+              (actionMenuUser && actionMenuUser.role === 'SUPER_ADMIN')
+            }
+            sx={{
+              color: 'error.main',
+              '&.Mui-disabled': {
+                color: 'error.light',
+                opacity: 0.7
+              }
+            }}
+          >
+            <ListItemIcon>
+              <DeleteIcon fontSize="small" color="error" />
+            </ListItemIcon>
+            <ListItemText>Delete User</ListItemText>
+          </MenuItem>
+        </Menu>
         
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
@@ -808,32 +924,52 @@ export default function UsersPage() {
         aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
-          {selectedUser?.isActive 
-            ? "Deactivate User" 
-            : "Activate User"}
+          User Actions
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="alert-dialog-description">
-            {selectedUser?.isActive 
-              ? `Are you sure you want to deactivate ${selectedUser?.name}? They will no longer be able to access the system.`
-              : `Are you sure you want to activate ${selectedUser?.name}? They will regain access to the system.`}
+            {selectedUser?.name && (
+              <>
+                <Typography variant="body1" sx={{ mb: 2 }}>
+                  What would you like to do with {selectedUser.name}?
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <strong>Deactivate:</strong> User will be marked as inactive but all data will be preserved. They will not be able to log in.
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  <strong>Delete:</strong> User will be permanently removed from the system. This action cannot be undone.
+                </Typography>
+              </>
+            )}
           </DialogContentText>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ display: 'flex', justifyContent: 'space-between', px: 3, pb: 2 }}>
           <Button onClick={handleDialogClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleToggleUserStatus} 
-            color={selectedUser?.isActive ? "error" : "success"} 
-            variant="contained"
-            disabled={isLoading}
-            autoFocus
-          >
-            {isLoading 
-              ? <CircularProgress size={24} /> 
-              : (selectedUser?.isActive ? "Deactivate" : "Activate")}
-          </Button>
+          <Box>
+            {selectedUser?.isActive && (
+              <Button 
+                onClick={handleToggleUserStatus} 
+                color="warning"
+                variant="outlined"
+                disabled={isLoading}
+                sx={{ mr: 1 }}
+              >
+                {isLoading ? <CircularProgress size={24} /> : 'Deactivate'}
+              </Button>
+            )}
+            <Button 
+              onClick={handleDeleteUser} 
+              color="error" 
+              variant="contained"
+              disabled={isLoading}
+            >
+              {isLoading ? <CircularProgress size={24} /> : 'Delete Permanently'}
+            </Button>
+          </Box>
         </DialogActions>
       </Dialog>
       

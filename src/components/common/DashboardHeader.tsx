@@ -1,6 +1,9 @@
 import React from 'react';
 import { Box, Typography, Divider } from '@mui/material';
 
+// Define theme colors
+const ORANGE_COLOR = '#F26722';
+
 interface DashboardHeaderProps {
   title: string;
   subtitle?: string;
@@ -21,15 +24,37 @@ export default function DashboardHeader({ title, subtitle, action }: DashboardHe
           mb: 1
         }}
       >
-        <Box>
-          <Typography variant="h4" component="h1" gutterBottom fontWeight="medium">
-            {title}
-          </Typography>
-          {subtitle && (
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              {subtitle}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Box 
+            sx={{ 
+              width: 6, 
+              height: 36, 
+              bgcolor: ORANGE_COLOR, 
+              mr: 2, 
+              borderRadius: 1,
+              display: { xs: 'none', sm: 'block' }
+            }} 
+          />
+          <Box>
+            <Typography 
+              variant="h4" 
+              component="h1" 
+              gutterBottom 
+              fontWeight="medium"
+              sx={{ 
+                color: '#333',
+                position: 'relative',
+                display: 'inline-block',
+              }}
+            >
+              {title}
             </Typography>
-          )}
+            {subtitle && (
+              <Typography variant="subtitle1" color="text.secondary" gutterBottom>
+                {subtitle}
+              </Typography>
+            )}
+          </Box>
         </Box>
         {action && (
           <Box>

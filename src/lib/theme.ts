@@ -1,8 +1,10 @@
 import { createTheme, ThemeOptions, PaletteMode } from '@mui/material/styles';
 
 // Brand colors from documentation
-const ORANGE = '#EE6417';
-const GREEN = '#3aa986';
+const ORANGE = '#F26722';
+const LIGHT_ORANGE = '#FFF1E8';
+const TEAL = '#19ac8b';
+const LIGHT_TEAL = '#e6f7f4';
 
 // Common component overrides for both themes
 const getCommonComponents = () => ({
@@ -16,6 +18,19 @@ const getCommonComponents = () => ({
         boxShadow: 'none',
         '&:hover': {
           boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.2)',
+        },
+      },
+      containedSecondary: {
+        '&:hover': {
+          backgroundColor: '#17977a', // Slightly darker teal for hover
+        },
+      },
+      outlinedSecondary: {
+        borderColor: TEAL,
+        color: TEAL,
+        '&:hover': {
+          backgroundColor: LIGHT_TEAL,
+          borderColor: TEAL,
         },
       },
     },
@@ -39,6 +54,99 @@ const getCommonComponents = () => ({
     styleOverrides: {
       root: {
         borderRadius: 8,
+        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+          borderColor: ORANGE,
+        },
+        '&:hover .MuiOutlinedInput-notchedOutline': {
+          borderColor: ORANGE,
+        },
+      },
+    },
+  },
+  MuiInputLabel: {
+    styleOverrides: {
+      root: {
+        '&.Mui-focused': {
+          color: ORANGE,
+        },
+      },
+    },
+  },
+  MuiCheckbox: {
+    styleOverrides: {
+      root: {
+        '&.Mui-checked': {
+          color: TEAL,
+        },
+      },
+    },
+  },
+  MuiRadio: {
+    styleOverrides: {
+      root: {
+        '&.Mui-checked': {
+          color: TEAL,
+        },
+      },
+    },
+  },
+  MuiSwitch: {
+    styleOverrides: {
+      switchBase: {
+        '&.Mui-checked': {
+          color: TEAL,
+          '& + .MuiSwitch-track': {
+            backgroundColor: TEAL,
+          },
+        },
+      },
+    },
+  },
+  MuiTab: {
+    styleOverrides: {
+      root: {
+        '&.Mui-selected': {
+          color: ORANGE,
+        },
+      },
+    },
+  },
+  MuiChip: {
+    styleOverrides: {
+      colorPrimary: {
+        backgroundColor: ORANGE,
+      },
+      colorSecondary: {
+        backgroundColor: TEAL,
+      },
+      outlinedSecondary: {
+        borderColor: TEAL,
+        color: TEAL,
+      },
+    },
+  },
+  MuiTableCell: {
+    styleOverrides: {
+      head: {
+        color: '#444',
+        fontWeight: 600,
+      },
+    },
+  },
+  MuiCircularProgress: {
+    styleOverrides: {
+      colorSecondary: {
+        color: TEAL,
+      },
+    },
+  },
+  MuiLinearProgress: {
+    styleOverrides: {
+      colorSecondary: {
+        backgroundColor: LIGHT_TEAL,
+        '& .MuiLinearProgress-bar': {
+          backgroundColor: TEAL,
+        },
       },
     },
   },
@@ -76,20 +184,36 @@ const getLightPalette = () => ({
   mode: 'light' as PaletteMode,
   primary: {
     main: ORANGE,
+    light: '#ff8a50',
+    dark: '#c53301',
     contrastText: '#fff',
   },
   secondary: {
-    main: GREEN,
+    main: TEAL,
+    light: '#4adcbe',
+    dark: '#107c5f',
     contrastText: '#fff',
   },
+  success: {
+    main: TEAL,
+    light: '#4adcbe',
+    dark: '#107c5f',
+  },
   background: {
-    default: '#f5f5f5',
+    default: '#f9f9f9',
     paper: '#ffffff',
   },
   text: {
     primary: '#333333',
     secondary: '#666666',
   },
+  action: {
+    hover: 'rgba(242, 103, 34, 0.08)',
+    selected: 'rgba(242, 103, 34, 0.12)',
+    activeOpacity: 0.12,
+    hoverOpacity: 0.04,
+  },
+  divider: 'rgba(0, 0, 0, 0.08)',
 });
 
 // Dark theme palette
@@ -97,11 +221,20 @@ const getDarkPalette = () => ({
   mode: 'dark' as PaletteMode,
   primary: {
     main: ORANGE,
+    light: '#ff8a50',
+    dark: '#c53301',
     contrastText: '#fff',
   },
   secondary: {
-    main: GREEN,
+    main: TEAL,
+    light: '#4adcbe',
+    dark: '#107c5f',
     contrastText: '#fff',
+  },
+  success: {
+    main: TEAL,
+    light: '#4adcbe',
+    dark: '#107c5f',
   },
   background: {
     default: '#121212',
@@ -111,6 +244,13 @@ const getDarkPalette = () => ({
     primary: '#f5f5f5',
     secondary: '#b0b0b0',
   },
+  action: {
+    hover: 'rgba(242, 103, 34, 0.16)',
+    selected: 'rgba(242, 103, 34, 0.24)',
+    activeOpacity: 0.24,
+    hoverOpacity: 0.12,
+  },
+  divider: 'rgba(255, 255, 255, 0.08)',
 });
 
 // Create theme based on mode

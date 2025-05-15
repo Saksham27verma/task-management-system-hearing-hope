@@ -3,7 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Notice from '@/models/Notice';
 import User from '@/models/User';
 import { withAuth, hasRole } from '@/lib/auth';
-import { sendEmail, emailTemplates } from '@/lib/email';
+import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 import Notification from '@/models/Notification';
 
 // GET /api/notices - Get all notices
@@ -110,6 +110,11 @@ export async function POST(request: NextRequest) {
       // Connect to database
       await connectToDatabase();
       
+      // Get the poster's information
+      const postedByUser = await User.findById(user.userId, 'name role');
+      const posterName = postedByUser ? postedByUser.name : 'Administrator';
+      const isPosterSuperAdmin = postedByUser && postedByUser.role === 'SUPER_ADMIN';
+      
       // Create new notice
       const newNotice = new Notice({
         title,
@@ -128,7 +133,6 @@ export async function POST(request: NextRequest) {
         try {
           // Get all active users
           const users = await User.find({ isActive: true }, 'name email');
-          const postedByUser = await User.findById(user.userId, 'name');
           
           if (users.length > 0) {
             // Prepare email recipients
@@ -139,7 +143,7 @@ export async function POST(request: NextRequest) {
               'Team Member', // Generic salutation
               title,
               content.substring(0, 200) + (content.length > 200 ? '...' : ''),
-              postedByUser ? postedByUser.name : 'Administrator'
+              posterName
             );
             
             await sendEmail(
@@ -170,6 +174,22 @@ export async function POST(request: NextRequest) {
         } catch (emailError) {
           console.error('Error sending notice notifications:', emailError);
           // Continue even if email fails
+        }
+      }
+      
+      // Notify all super admins about the new notice if the poster is not a super admin
+      if (!isPosterSuperAdmin) {
+        try {
+          await notifyAdmins(
+            'New Notice Posted',
+            `${posterName} posted a new notice: ${title}`,
+            posterName,
+            'View Notice',
+            `/dashboard/notices`
+          );
+        } catch (adminNotifyError) {
+          console.error('Error notifying admins about new notice:', adminNotifyError);
+          // Continue even if notification fails
         }
       }
       
