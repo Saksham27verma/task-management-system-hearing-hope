@@ -18,6 +18,19 @@ export async function GET(
   
   return withPermission(request, async (user) => {
     try {
+      // Validate user ID parameter
+      if (!id || id === 'undefined') {
+        console.error(`Invalid user ID provided: ${id}`);
+        return NextResponse.json(
+          { 
+            success: false, 
+            message: 'Invalid user ID', 
+            permissions: [] 
+          },
+          { status: 400 }
+        );
+      }
+      
       await connectToDatabase();
       
       // Get user permissions
@@ -31,7 +44,7 @@ export async function GET(
     } catch (error) {
       console.error(`Error fetching permissions for user ${id}:`, error);
       return NextResponse.json(
-        { success: false, message: 'Failed to fetch user permissions' },
+        { success: false, message: 'Failed to fetch user permissions', permissions: [] },
         { status: 500 }
       );
     }
@@ -47,6 +60,15 @@ export async function PUT(
   
   return withPermission(request, async (user) => {
     try {
+      // Validate user ID parameter
+      if (!id || id === 'undefined') {
+        console.error(`Invalid user ID provided: ${id}`);
+        return NextResponse.json(
+          { success: false, message: 'Invalid user ID' },
+          { status: 400 }
+        );
+      }
+      
       const { customPermissions, permissionGroups } = await request.json();
       console.log(`Updating permissions for user ${id}`, { customPermissions, permissionGroups });
       

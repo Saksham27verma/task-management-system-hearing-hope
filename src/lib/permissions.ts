@@ -15,6 +15,12 @@ export async function checkPermission(
   requiredPermission: Permission
 ): Promise<boolean> {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error(`Permission check failed: Invalid userId provided: ${userId}`);
+      return false;
+    }
+
     const { db } = await connectToDatabase();
     
     // Get the user
@@ -89,6 +95,12 @@ export async function checkPermission(
  */
 export async function getUserPermissions(userId: string): Promise<string[]> {
   try {
+    // Validate userId
+    if (!userId || typeof userId !== 'string') {
+      console.error(`Cannot get permissions: Invalid userId provided: ${userId}`);
+      return [];
+    }
+
     const { db } = await connectToDatabase();
     
     // Get the user
@@ -136,6 +148,12 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
     console.error('Error getting user permissions:', error);
     // Return just the role-based permissions if there's an error
     try {
+      // Validate userId again
+      if (!userId || typeof userId !== 'string') {
+        console.error(`Second attempt failed: Invalid userId provided: ${userId}`);
+        return [];
+      }
+
       const { db } = await connectToDatabase();
       const userObjectId = new ObjectId(userId);
       const user = await db.collection('users').findOne({ _id: userObjectId });

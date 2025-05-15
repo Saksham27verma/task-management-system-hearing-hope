@@ -11,7 +11,8 @@ export function usePermissions() {
 
   // Fetch user permissions from the API
   const fetchPermissions = useCallback(async () => {
-    if (!isAuthenticated || !user) {
+    if (!isAuthenticated || !user || !user.id) {
+      console.log('Cannot fetch permissions: No authenticated user or missing user ID');
       setPermissions([]);
       setLoading(false);
       return;
@@ -19,6 +20,16 @@ export function usePermissions() {
 
     try {
       setLoading(true);
+      console.log(`Fetching permissions for user ID: ${user.id}`);
+      
+      // Validate user ID before making the API call
+      if (user.id === 'undefined' || user.id === 'null') {
+        console.error(`Invalid user ID detected: ${user.id}`);
+        setError('Invalid user ID');
+        setLoading(false);
+        return;
+      }
+      
       const response = await fetch(`/api/users/${user.id}/permissions`);
       
       if (!response.ok) {
@@ -34,7 +45,7 @@ export function usePermissions() {
               if (retryResponse.ok) {
                 const retryData = await retryResponse.json();
                 if (retryData.success) {
-                  setPermissions(retryData.permissions);
+                  setPermissions(retryData.permissions || []);
                   setLoading(false);
                   return;
                 }
@@ -51,12 +62,16 @@ export function usePermissions() {
       const data = await response.json();
       if (data.success) {
         setPermissions(data.permissions || []);
+        setError(null);
       } else {
         setError(data.message || 'Failed to fetch permissions');
+        // Set empty permissions array on error
+        setPermissions([]);
       }
     } catch (err: any) {
       console.error('Error fetching permissions:', err);
       setError(err.message || 'An error occurred');
+      setPermissions([]); // Ensure permissions are emptied on error
       
       // As a fallback, assign default role-based permissions directly
       if (user && user.role) {
@@ -103,7 +118,10 @@ export function usePermissions() {
 
   // Fix permissions directly
   const fixPermissions = useCallback(async () => {
-    if (!user || !user.id) return false;
+    if (!user || !user.id) {
+      console.error('Cannot fix permissions: No user or missing user ID');
+      return false;
+    }
     
     try {
       const response = await fetch(`/api/system/fix-permissions?userId=${user.id}`);

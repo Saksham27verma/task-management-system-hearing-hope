@@ -21,6 +21,8 @@ import {
   useTheme,
   alpha,
   Button,
+  SwipeableDrawer,
+  Paper,
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -38,6 +40,7 @@ import {
   Brightness7 as LightModeIcon,
   Videocam as VideoIcon,
   Bookmarks as BookmarksIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
@@ -188,20 +191,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
   }, [isMobile]);
   
-  // Close drawer when navigating on mobile
-  useEffect(() => {
-    console.log("Pathname changed to:", pathname);
-    if (isMobile && mobileOpen) {
-      console.log("Closing mobile drawer after navigation");
-      // Add small delay to ensure navigation completes first
-      const timer = setTimeout(() => {
-        setMobileOpen(false);
-        console.log("Mobile drawer closed after navigation");
-      }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [pathname, isMobile, mobileOpen]);
-  
   // Handle profile menu
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -216,21 +205,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     await logout();
   };
   
-  // Toggle mobile navigation
+  // Toggle mobile navigation - make it extremely simple to avoid any issues
   const toggleMobileNav = useCallback(() => {
-    console.log('Mobile nav toggle CALL, current state:', mobileOpen);
-    // Use direct state value rather than functional update
-    const newState = !mobileOpen;
-    console.log('WILL SET mobileOpen to:', newState);
-    setMobileOpen(newState);
-    
-    // Track state in localStorage for debugging
-    try {
-      localStorage.setItem('mobileNavState', String(newState));
-    } catch (e) {
-      console.error('Failed to update localStorage:', e);
-    }
-  }, [mobileOpen]);
+    setMobileOpen(prevState => !prevState);
+  }, []);
 
   // Debug logger for mobileOpen state
   useEffect(() => {
@@ -245,6 +223,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     
     return () => {
       console.log('mobileOpen effect cleanup, last state:', mobileOpen);
+      document.body.style.overflow = '';
     };
   }, [mobileOpen]);
   
@@ -356,20 +335,69 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 
   const drawer = (
-    <div>
-      <Toolbar sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        padding: isMobile ? '8px' : '12px',
-        backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : 'white',
-        color: theme.palette.text.primary,
-        height: isMobile ? 'auto' : '64px',
-        borderBottom: `1px solid ${theme.palette.divider}`
-      }}>
+    <Box
+      component="div"
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Swipe handle for bottom drawer */}
+      {isMobile && (
+        <Box 
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '8px 0 0',
+          }}
+        >
+          <Box
+            sx={{
+              width: 40,
+              height: 5,
+              borderRadius: 5,
+              backgroundColor: theme.palette.divider,
+            }}
+          />
+        </Box>
+      )}
+      
+      <Toolbar 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          padding: isMobile ? '8px 12px' : '12px',
+          backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : 'white',
+          color: theme.palette.text.primary,
+          height: isMobile ? '64px' : '64px',
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          position: 'relative',
+        }}
+      >
+        {isMobile && (
+          <IconButton 
+            onClick={() => setMobileOpen(false)}
+            size="small"
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: theme.palette.text.secondary,
+              zIndex: 10,
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        )}
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
+          width: '100%',
           transition: 'transform 0.2s ease',
           '&:hover': {
             transform: 'scale(1.03)'
@@ -387,99 +415,204 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           />
         </Box>
       </Toolbar>
-      <Divider />
       
-      {/* User profile section */}
-      {user && (
-        <Box 
-          sx={{ 
-            py: 1.5, 
-            px: 2, 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderBottom: `1px solid ${theme.palette.divider}`
-          }}
-        >
-          <Avatar 
-            sx={{ 
-              width: isMobile ? 60 : 50, 
-              height: isMobile ? 60 : 50, 
-              bgcolor: theme.palette.primary.main,
-              mb: 1
-            }}
-          >
-            {user.name?.charAt(0).toUpperCase()}
-          </Avatar>
-          <Typography variant="subtitle2" fontWeight="bold" noWrap>
-            {user.name}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {user.role}
-          </Typography>
-        </Box>
-      )}
-      
-      {/* Navigation items */}
-      <List sx={{ py: 0 }}>
-        {filteredNavItems.map((item) => (
-          <Permission key={item.href} permissions={item.permissions} roles={item.roles}>
-            <ListItem disablePadding>
-              <ListItemButton
-                component={Link}
-                href={item.href}
-                selected={isActive(item.href)}
-                onClick={(e) => {
-                  console.log("Navigation item clicked:", item.label);
-                  // Let the natural navigation happen
-                }}
-                sx={{
-                  py: isMobile ? 1.8 : 1.2,
-                  color: isActive(item.href) 
-                    ? theme.palette.primary.main 
-                    : theme.palette.text.primary,
-                  '&.Mui-selected': {
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                    borderRight: `3px solid ${theme.palette.primary.main}`,
-                    '&:hover': {
-                      bgcolor: alpha(theme.palette.primary.main, 0.15),
-                    }
-                  },
-                  '&:hover': {
-                    bgcolor: alpha(theme.palette.primary.main, 0.1),
-                  }
+      {/* Mobile drawer content */}
+      {isMobile ? (
+        <Box sx={{ overflow: 'auto', flexGrow: 1, width: '100%' }}>
+          {/* User profile section - horizontal for mobile */}
+          {user && (
+            <Box 
+              sx={{ 
+                py: 1.5, 
+                px: 3, 
+                display: 'flex', 
+                alignItems: 'center',
+                borderBottom: `1px solid ${theme.palette.divider}`
+              }}
+            >
+              <Avatar 
+                sx={{ 
+                  width: 50, 
+                  height: 50, 
+                  bgcolor: theme.palette.primary.main,
+                  mr: 2
                 }}
               >
-                <ListItemIcon 
-                  sx={{ 
-                    color: isActive(item.href) 
-                      ? theme.palette.primary.main 
-                      : 'inherit',
-                    minWidth: isMobile ? 40 : 36,
-                    fontSize: isMobile ? 'default' : '0.9rem'
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText 
-                  primary={
-                    <Typography 
-                      variant="body2" 
-                      fontSize={isMobile ? '0.9rem' : '0.85rem'}
-                      fontWeight={isActive(item.href) ? "medium" : "normal"}
+                {user.name?.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {user.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {user.role}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+          
+          {/* Navigation items - list layout for mobile */}
+          <List sx={{ width: '100%', pt: 1 }}>
+            {filteredNavItems.map((item) => (
+              <Permission key={item.href} permissions={item.permissions} roles={item.roles}>
+                <ListItem disablePadding>
+                  <ListItemButton
+                    onClick={() => handleNavigation(item.href)}
+                    sx={{
+                      py: 2,
+                      px: 3,
+                      backgroundColor: isActive(item.href) 
+                        ? alpha(theme.palette.primary.main, 0.08)
+                        : 'transparent',
+                      borderLeft: isActive(item.href) 
+                        ? `4px solid ${theme.palette.primary.main}` 
+                        : '4px solid transparent',
+                      '&:hover': {
+                        backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 48,
+                        color: isActive(item.href) 
+                          ? theme.palette.primary.main
+                          : theme.palette.text.secondary,
+                      }}
                     >
-                      {item.label}
-                    </Typography>
-                  } 
-                  sx={{ my: 0 }}
-                />
-              </ListItemButton>
-            </ListItem>
-          </Permission>
-        ))}
-      </List>
-    </div>
+                      {item.icon}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: isActive(item.href) ? "medium" : "normal",
+                            color: isActive(item.href) 
+                              ? theme.palette.primary.main
+                              : theme.palette.text.primary,
+                          }}
+                        >
+                          {item.label}
+                        </Typography>
+                      }
+                    />
+                  </ListItemButton>
+                </ListItem>
+              </Permission>
+            ))}
+          </List>
+        </Box>
+      ) : (
+        // Desktop drawer layout remains the same
+        <>
+          <Divider />
+          
+          {/* User profile section */}
+          {user && (
+            <Box 
+              sx={{ 
+                py: 1.5, 
+                px: 2, 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center',
+                borderBottom: `1px solid ${theme.palette.divider}`
+              }}
+            >
+              <Avatar 
+                sx={{ 
+                  width: 50, 
+                  height: 50, 
+                  bgcolor: theme.palette.primary.main,
+                  mb: 1
+                }}
+              >
+                {user.name?.charAt(0).toUpperCase()}
+              </Avatar>
+              <Typography variant="subtitle2" fontWeight="bold" noWrap>
+                {user.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {user.role}
+              </Typography>
+            </Box>
+          )}
+          
+          {/* Navigation items */}
+          <Box sx={{ overflow: 'auto', flexGrow: 1 }}>
+            <List sx={{ py: 0 }}>
+              {filteredNavItems.map((item) => (
+                <Permission key={item.href} permissions={item.permissions} roles={item.roles}>
+                  <ListItem disablePadding>
+                    <ListItemButton
+                      component="div"
+                      selected={isActive(item.href)}
+                      onClick={() => {
+                        console.log("Navigation item clicked:", item.label);
+                        router.push(item.href);
+                      }}
+                      sx={{
+                        py: 1.2,
+                        color: isActive(item.href) 
+                          ? theme.palette.primary.main 
+                          : theme.palette.text.primary,
+                        '&.Mui-selected': {
+                          bgcolor: alpha(theme.palette.primary.main, 0.1),
+                          borderRight: `3px solid ${theme.palette.primary.main}`,
+                          '&:hover': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.15),
+                          }
+                        },
+                        '&:hover': {
+                          bgcolor: alpha(theme.palette.primary.main, 0.1),
+                        }
+                      }}
+                    >
+                      <ListItemIcon 
+                        sx={{ 
+                          color: isActive(item.href) 
+                            ? theme.palette.primary.main 
+                            : 'inherit',
+                          minWidth: 36,
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        {item.icon}
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={
+                          <Typography 
+                            variant="body2" 
+                            fontSize='0.85rem'
+                            fontWeight={isActive(item.href) ? "medium" : "normal"}
+                          >
+                            {item.label}
+                          </Typography>
+                        } 
+                        sx={{ my: 0 }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                </Permission>
+              ))}
+            </List>
+          </Box>
+        </>
+      )}
+    </Box>
   );
+
+  // Create a handler for navigating items
+  const handleNavigation = useCallback((href: string) => {
+    // Close drawer first
+    setMobileOpen(false);
+    
+    // Then navigate after a short delay
+    setTimeout(() => {
+      router.push(href);
+    }, 50);
+  }, [router]);
 
   // Main content
   return (
@@ -516,7 +649,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               color="inherit"
               aria-label="open drawer"
               edge="start"
-              onClick={toggleMobileNav}
+              onClick={(e) => {
+                // Prevent any event bubbling
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMobileNav();
+              }}
               sx={{
                 mr: 2, 
                 padding: '10px',
@@ -665,36 +803,38 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       
       {/* Navigation drawer - Mobile */}
       {isMobile && (
-        <Drawer
-          variant="temporary"
+        <SwipeableDrawer
+          anchor="bottom"
           open={mobileOpen}
-          onClose={toggleMobileNav}
+          onOpen={() => setMobileOpen(true)}
+          onClose={() => setMobileOpen(false)}
+          disableBackdropTransition={false}
+          disableDiscovery={false}
+          disableSwipeToOpen={true}
+          swipeAreaWidth={0}
+          hysteresis={0.52}
+          minFlingVelocity={450}
           ModalProps={{
-            keepMounted: true,
-            disablePortal: false,
-            disableAutoFocus: false,
-            BackdropProps: {
-              invisible: false,
+            keepMounted: false,
+          }}
+          PaperProps={{
+            sx: {
+              width: '100%',
+              maxHeight: '90vh',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              overflowY: 'auto',
             }
           }}
           sx={{
-            display: { xs: 'block', md: 'none' },
-            '& .MuiDrawer-paper': { 
-              boxSizing: 'border-box', 
-              width: drawerWidth,
-              overflowX: 'hidden',
-              boxShadow: 3,
-              zIndex: 2000,
-            },
-            zIndex: 1400,
-          }}
-          SlideProps={{
-            direction: 'right',
-            timeout: { enter: 300, exit: 300 }
+            zIndex: 1500,
+            '& .MuiDrawer-paper': {
+              boxShadow: 5,
+            }
           }}
         >
           {drawer}
-        </Drawer>
+        </SwipeableDrawer>
       )}
       
       {/* Navigation drawer - Desktop (unchanged) */}
