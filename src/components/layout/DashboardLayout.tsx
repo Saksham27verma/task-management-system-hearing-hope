@@ -57,7 +57,7 @@ const WalkthroughTour = dynamic(
 const getDrawerWidth = (isMobile: boolean, isSmallMobile: boolean) => {
   if (isSmallMobile) return 220;
   if (isMobile) return 240;
-  return 280;
+  return 260; // Slightly narrower for desktop
 };
 
 // Main content padding based on screen size
@@ -209,7 +209,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
   
   const handleDrawerToggle = () => {
+    console.log('Drawer toggle clicked, current state:', mobileOpen);
     setMobileOpen(!mobileOpen);
+    // Add a small delay to ensure state change is registered
+    setTimeout(() => {
+      console.log('Drawer state after toggle:', !mobileOpen);
+    }, 100);
   };
   
   // Navigate to profile
@@ -310,25 +315,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <Toolbar sx={{ 
         display: 'flex', 
         justifyContent: 'center', 
-        padding: isMobile ? '8px' : '16px',
-        backgroundColor: theme.palette.primary.main,
-        color: theme.palette.primary.contrastText
+        padding: isMobile ? '8px' : '12px',
+        backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : 'white',
+        color: theme.palette.text.primary,
+        height: isMobile ? 'auto' : '64px',
+        borderBottom: `1px solid ${theme.palette.divider}`
       }}>
         <Box sx={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          transition: 'transform 0.3s ease',
+          transition: 'transform 0.2s ease',
           '&:hover': {
-            transform: 'scale(1.05)'
+            transform: 'scale(1.03)'
           }
         }}>
           <Image 
             src="/images/logohope.svg" 
             alt="Hearing Hope Logo" 
-            width={isMobile ? 120 : 150} 
-            height={isMobile ? 40 : 50}
-            style={{ objectFit: 'contain' }}
+            width={isMobile ? 120 : 130} 
+            height={isMobile ? 40 : 44}
+            style={{ 
+              objectFit: 'contain',
+              filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))'
+            }}
           />
         </Box>
       </Toolbar>
@@ -338,7 +348,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {user && (
         <Box 
           sx={{ 
-            py: 2, 
+            py: 1.5, 
             px: 2, 
             display: 'flex', 
             flexDirection: 'column',
@@ -348,18 +358,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         >
           <Avatar 
             sx={{ 
-              width: 60, 
-              height: 60, 
+              width: isMobile ? 60 : 50, 
+              height: isMobile ? 60 : 50, 
               bgcolor: theme.palette.primary.main,
               mb: 1
             }}
           >
             {user.name?.charAt(0).toUpperCase()}
           </Avatar>
-          <Typography variant="subtitle1" fontWeight="bold" noWrap>
+          <Typography variant="subtitle2" fontWeight="bold" noWrap>
             {user.name}
           </Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>
+          <Typography variant="caption" color="text.secondary" noWrap>
             {user.role}
           </Typography>
         </Box>
@@ -375,7 +385,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 href={item.href}
                 selected={isActive(item.href)}
                 sx={{
-                  py: 1.5,
+                  py: isMobile ? 1.5 : 1.2,
                   color: isActive(item.href) 
                     ? theme.palette.primary.main 
                     : theme.palette.text.primary,
@@ -396,13 +406,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     color: isActive(item.href) 
                       ? theme.palette.primary.main 
                       : 'inherit',
-                    minWidth: isMobile ? 40 : 48
+                    minWidth: isMobile ? 40 : 36,
+                    fontSize: isMobile ? 'default' : '0.9rem'
                   }}
                 >
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText 
-                  primary={<Typography variant="body1" fontSize={isMobile ? '0.9rem' : '1rem'}>{item.label}</Typography>} 
+                  primary={
+                    <Typography 
+                      variant="body2" 
+                      fontSize={isMobile ? '0.9rem' : '0.85rem'}
+                      fontWeight={isActive(item.href) ? "medium" : "normal"}
+                    >
+                      {item.label}
+                    </Typography>
+                  } 
+                  sx={{ my: 0 }}
                 />
               </ListItemButton>
             </ListItem>
@@ -424,6 +444,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
           boxShadow: 1,
+          zIndex: 1900, // Lower than drawer but higher than most content
         }}
       >
         <Toolbar sx={{ 
@@ -440,9 +461,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             sx={{ 
               mr: 1, 
               display: { md: 'none' },
-              padding: { xs: '10px' },  // Larger tap target
-              position: 'relative',
-              zIndex: 1300  // Ensure it's above other content
+              padding: { xs: '12px' },  // Larger tap target
+              position: 'absolute',
+              left: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 2000,  // Higher z-index to ensure it's above all content
+              backgroundColor: 'rgba(0, 0, 0, 0.05)',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.1)',
+              },
+              width: '44px', // Fixed width
+              height: '44px', // Fixed height
             }}
           >
             <MenuIcon fontSize="medium" />
@@ -558,11 +588,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               overflowX: 'hidden',
               borderRadius: { xs: '0 16px 16px 0' },
               boxShadow: 3,
+              maxWidth: '85vw', // Prevent drawer from taking full width on small screens
             },
             '& .MuiBackdrop-root': {
-              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
               backdropFilter: 'blur(4px)',
             },
+            zIndex: 2100, // Ensure drawer is above everything
           }}
         >
           {drawer}
@@ -577,14 +609,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               boxSizing: 'border-box', 
               width: drawerWidth,
               backgroundColor: theme.palette.mode === 'light' 
-                ? alpha(theme.palette.background.paper, 0.95) 
+                ? alpha(theme.palette.background.paper, 0.97) 
                 : alpha(theme.palette.background.paper, 0.98),
               borderRight: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
-              boxShadow: 2,
+              boxShadow: '0 0 15px rgba(0,0,0,0.05)',
               overflowX: 'hidden',
               backgroundImage: theme.palette.mode === 'light' 
                 ? 'linear-gradient(rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05))' 
                 : 'linear-gradient(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.05))',
+              '& .MuiTypography-root': {
+                letterSpacing: '0.01em',
+              },
+              '& .MuiListItemButton-root': {
+                transition: 'all 0.15s ease',
+              },
+              '& .MuiListItemIcon-root': {
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                '& svg': {
+                  fontSize: '1.25rem',
+                },
+              },
             },
           }}
           open
