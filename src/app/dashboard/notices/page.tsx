@@ -94,17 +94,30 @@ export default function NoticesPage() {
     
     try {
       const response = await fetch('/api/notices');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch notices: ${response.status} ${response.statusText}`);
+      }
+      
       const data = await response.json();
       
-      if (response.ok && data.success) {
-        setNotices(data.notices);
+      if (data.success) {
+        // Validate notices before setting state
+        const validNotices = Array.isArray(data.notices) 
+          ? data.notices.filter(notice => notice && typeof notice === 'object')
+          : [];
+          
+        if (validNotices.length === 0 && data.notices && data.notices.length > 0) {
+          console.warn('Received notices but they were filtered out during validation');
+        }
+        
+        setNotices(validNotices);
       } else {
-        setError(data.message || 'Failed to fetch notices');
-        setNotices([]);
+        throw new Error(data.message || 'Failed to fetch notices: Unknown error');
       }
     } catch (err) {
       console.error('Error fetching notices:', err);
-      setError('An error occurred while fetching notices');
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching notices');
       setNotices([]);
     } finally {
       setLoading(false);
@@ -325,19 +338,24 @@ export default function NoticesPage() {
   };
 
   // Filter notices based on search query
-  const filteredNotices = notices.filter(notice =>
-    notice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    notice.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNotices = notices.filter(notice => {
+    if (!notice) return false;
+    return (
+      notice.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      notice.content?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
 
   // Sort notices by importance and date
   const sortedNotices = [...filteredNotices].sort((a, b) => {
+    if (!a || !b) return 0;
+    
     // Sort by importance first
     if (a.isImportant && !b.isImportant) return -1;
     if (!a.isImportant && b.isImportant) return 1;
     
     // Then sort by creation date (newest first)
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    return new Date(b.createdAt || Date.now()).getTime() - new Date(a.createdAt || Date.now()).getTime();
   });
 
   // Check if a notice is expired
@@ -439,7 +457,7 @@ export default function NoticesPage() {
         {/* Notices list */}
         {!loading && sortedNotices.length > 0 && (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {sortedNotices.map(notice => (
+            {sortedNotices.filter(notice => notice && notice._id).map(notice => (
               <Card 
                 key={notice._id}
                 variant="outlined" 
@@ -472,7 +490,7 @@ export default function NoticesPage() {
                       )}
                     </Box>
                     
-                    {(user?.role === 'SUPER_ADMIN' || user?.id === notice.postedBy._id) && (
+                    {(user?.role === 'SUPER_ADMIN' || (notice.postedBy && user?.id === notice.postedBy._id)) && (
                       <Box>
                         <IconButton 
                           size="small" 
