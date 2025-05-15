@@ -234,7 +234,7 @@ const NotificationBell = memo(() => {
   const notificationContent = (
     <>
       <Box sx={{ 
-        px: 2, 
+        px: isMobile ? 1.5 : 2, 
         py: 1.5, 
         display: 'flex', 
         justifyContent: 'space-between', 
@@ -245,7 +245,7 @@ const NotificationBell = memo(() => {
         zIndex: 1,
         borderBottom: `1px solid ${theme.palette.divider}`
       }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem' }}>
           Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
         </Typography>
         <Box>
@@ -254,7 +254,7 @@ const NotificationBell = memo(() => {
               size="small" 
               onClick={handleRefresh}
               disabled={loading}
-              sx={{ mr: 1 }}
+              sx={{ mr: 0.5 }}
             >
               {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
             </IconButton>
@@ -264,7 +264,7 @@ const NotificationBell = memo(() => {
               size="small" 
               onClick={handleMarkAllAsRead}
               disabled={unreadCount === 0 || loading}
-              sx={{ mr: 1 }}
+              sx={{ mr: 0.5 }}
             >
               <MarkReadIcon fontSize="small" />
             </IconButton>
@@ -283,7 +283,7 @@ const NotificationBell = memo(() => {
               <IconButton 
                 size="small" 
                 onClick={handleClose}
-                sx={{ ml: 1 }}
+                sx={{ ml: 0.5 }}
               >
                 <CloseIcon fontSize="small" />
               </IconButton>
@@ -466,7 +466,7 @@ const NotificationBell = memo(() => {
     <>
       <Tooltip title={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}>
         <IconButton
-          size="large"
+          size={isMobile ? "medium" : "large"}
           color="inherit"
           onClick={handleOpen}
           aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ''}`}
@@ -475,6 +475,8 @@ const NotificationBell = memo(() => {
             position: 'relative',
             transition: 'transform 0.2s',
             '&:hover': { transform: 'scale(1.1)' },
+            padding: isMobile ? '10px' : '8px',  // Larger tap target on mobile
+            zIndex: 1200  // Ensure it's above other elements
           }}
         >
           <Badge 
@@ -540,10 +542,16 @@ const NotificationBell = memo(() => {
           PaperProps={{
             sx: {
               height: 'auto',
-              maxHeight: '90vh',
+              maxHeight: '80vh',  // Slightly reduced to ensure it's not too tall
               borderTopLeftRadius: 16,
               borderTopRightRadius: 16,
               overflow: 'hidden',
+              width: '100%',  // Ensure full width
+              boxShadow: 3,   // Add shadow for better appearance
+              position: 'fixed', // Make sure it's fixed at the bottom
+              bottom: 0,
+              left: 0,
+              right: 0
             }
           }}
         >

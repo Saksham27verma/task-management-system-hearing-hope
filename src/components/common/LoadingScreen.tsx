@@ -283,7 +283,7 @@ export default function LoadingScreen({
               }}
             >
               <Image
-                src="/images/logo.png"
+                src="/images/logohope.svg"
                 alt="Logo"
                 width={logoSize.width}
                 height={logoSize.height}

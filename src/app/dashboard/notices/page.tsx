@@ -438,89 +438,91 @@ export default function NoticesPage() {
         
         {/* Notices list */}
         {!loading && sortedNotices.length > 0 && (
-          <Grid spacing={3}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {sortedNotices.map(notice => (
-              <Grid size={{ xs: 12 }} key={notice._id}>
-                <Card variant="outlined" sx={{ 
+              <Card 
+                key={notice._id}
+                variant="outlined" 
+                sx={{ 
                   borderLeft: notice.isImportant ? 4 : 1, 
                   borderLeftColor: notice.isImportant ? 'error.main' : 'divider',
                   opacity: isExpired(notice.expiryDate) ? 0.7 : 1
-                }}>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="h6" component="h2">
-                          {notice.title}
-                        </Typography>
-                        {notice.isImportant && (
-                          <Chip 
-                            icon={<PriorityHighIcon />} 
-                            label="Important" 
-                            color="error" 
-                            size="small" 
-                          />
-                        )}
-                        {isExpired(notice.expiryDate) && (
-                          <Chip 
-                            label="Expired" 
-                            color="default" 
-                            size="small" 
-                          />
-                        )}
-                      </Box>
-                      
-                      {(user?.role === 'SUPER_ADMIN' || user?.id === notice.postedBy._id) && (
-                        <Box>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEditDialogOpen(notice)}
-                            aria-label="Edit notice"
-                          >
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleDeleteDialogOpen(notice)}
-                            aria-label="Delete notice"
-                            color="error"
-                          >
-                            <DeleteIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
+                }}
+              >
+                <CardContent>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6" component="h2">
+                        {notice.title}
+                      </Typography>
+                      {notice.isImportant && (
+                        <Chip 
+                          icon={<PriorityHighIcon />} 
+                          label="Important" 
+                          color="error" 
+                          size="small" 
+                        />
+                      )}
+                      {isExpired(notice.expiryDate) && (
+                        <Chip 
+                          label="Expired" 
+                          color="default" 
+                          size="small" 
+                        />
                       )}
                     </Box>
                     
-                    <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: 2 }}>
-                      {notice.content}
+                    {(user?.role === 'SUPER_ADMIN' || user?.id === notice.postedBy._id) && (
+                      <Box>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleEditDialogOpen(notice)}
+                          aria-label="Edit notice"
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleDeleteDialogOpen(notice)}
+                          aria-label="Delete notice"
+                          color="error"
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  <Typography variant="body1" sx={{ whiteSpace: 'pre-line', mb: 2 }}>
+                    {notice.content}
+                  </Typography>
+                  
+                  <Divider sx={{ my: 1 }} />
+                  
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Posted by: {notice.postedBy?.name || 'Unknown'}
                     </Typography>
                     
-                    <Divider sx={{ my: 1 }} />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Posted by: {notice.postedBy?.name || 'Unknown'}
-                      </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      {notice.expiryDate && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <CalendarTodayIcon fontSize="small" color="action" />
+                          <Typography variant="body2" color="text.secondary">
+                            Expires: {formatDateHuman(new Date(notice.expiryDate))}
+                          </Typography>
+                        </Box>
+                      )}
                       
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {notice.expiryDate && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <CalendarTodayIcon fontSize="small" color="action" />
-                            <Typography variant="body2" color="text.secondary">
-                              Expires: {formatDateHuman(new Date(notice.expiryDate))}
-                            </Typography>
-                          </Box>
-                        )}
-                        
-                        <Typography variant="body2" color="text.secondary">
-                          Posted: {formatDateHuman(new Date(notice.createdAt))}
-                        </Typography>
-                      </Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Posted: {formatDateHuman(new Date(notice.createdAt))}
+                      </Typography>
                     </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
+                  </Box>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
+          </Box>
         )}
       </Paper>
       

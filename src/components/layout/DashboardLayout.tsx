@@ -437,9 +437,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             aria-label="open drawer"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 1, display: { md: 'none' } }}
+            sx={{ 
+              mr: 1, 
+              display: { md: 'none' },
+              padding: { xs: '10px' },  // Larger tap target
+              position: 'relative',
+              zIndex: 1300  // Ensure it's above other content
+            }}
           >
-            <MenuIcon />
+            <MenuIcon fontSize="medium" />
           </IconButton>
           
           <Typography
