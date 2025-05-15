@@ -1,4 +1,4 @@
-import React, { useState, ReactNode, useEffect } from 'react';
+import React, { useState, ReactNode, useEffect, useCallback, useRef } from 'react';
 import {
   AppBar,
   Box,
@@ -20,6 +20,7 @@ import {
   Tooltip,
   useTheme,
   alpha,
+  Button,
 } from '@mui/material';
 import { 
   Menu as MenuIcon, 
@@ -189,8 +190,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   
   // Close drawer when navigating on mobile
   useEffect(() => {
+    console.log("Pathname changed to:", pathname);
     if (isMobile && mobileOpen) {
-      setMobileOpen(false);
+      console.log("Closing mobile drawer after navigation");
+      // Add small delay to ensure navigation completes first
+      const timer = setTimeout(() => {
+        setMobileOpen(false);
+        console.log("Mobile drawer closed after navigation");
+      }, 150);
+      return () => clearTimeout(timer);
     }
   }, [pathname, isMobile, mobileOpen]);
   
@@ -208,14 +216,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     await logout();
   };
   
-  const handleDrawerToggle = () => {
-    console.log('Drawer toggle clicked, current state:', mobileOpen);
-    setMobileOpen(!mobileOpen);
-    // Add a small delay to ensure state change is registered
-    setTimeout(() => {
-      console.log('Drawer state after toggle:', !mobileOpen);
-    }, 100);
-  };
+  // Toggle mobile navigation
+  const toggleMobileNav = useCallback(() => {
+    console.log('Mobile nav toggle CALL, current state:', mobileOpen);
+    // Use direct state value rather than functional update
+    const newState = !mobileOpen;
+    console.log('WILL SET mobileOpen to:', newState);
+    setMobileOpen(newState);
+    
+    // Track state in localStorage for debugging
+    try {
+      localStorage.setItem('mobileNavState', String(newState));
+    } catch (e) {
+      console.error('Failed to update localStorage:', e);
+    }
+  }, [mobileOpen]);
+
+  // Debug logger for mobileOpen state
+  useEffect(() => {
+    console.log('mobileOpen state CHANGED to:', mobileOpen);
+    
+    // Control body scrolling
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      console.log('mobileOpen effect cleanup, last state:', mobileOpen);
+    };
+  }, [mobileOpen]);
+  
+  // Add a global click handler for debugging
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Open drawer when pressing 'm' key (for testing)
+      if (e.key === 'm' && isMobile) {
+        console.log('Force toggle mobile nav via key');
+        toggleMobileNav();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [toggleMobileNav, isMobile]);
   
   // Navigate to profile
   const handleProfileClick = () => {
@@ -384,8 +429,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 component={Link}
                 href={item.href}
                 selected={isActive(item.href)}
+                onClick={(e) => {
+                  console.log("Navigation item clicked:", item.label);
+                  // Let the natural navigation happen
+                }}
                 sx={{
-                  py: isMobile ? 1.5 : 1.2,
+                  py: isMobile ? 1.8 : 1.2,
                   color: isActive(item.href) 
                     ? theme.palette.primary.main 
                     : theme.palette.text.primary,
@@ -445,44 +494,52 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           ml: { md: `${drawerWidth}px` },
           boxShadow: 1,
           zIndex: 1900, // Lower than drawer but higher than most content
+          backgroundColor: '#EE6417', // Match the color in the screenshot (orange)
+          color: 'white',
         }}
       >
         <Toolbar sx={{ 
           justifyContent: 'space-between', 
           height: { xs: 56, sm: 64 }, 
           px: { xs: 1, sm: 3 },
-          minHeight: { xs: '56px', sm: '64px' }
+          minHeight: { xs: '56px', sm: '64px' },
+          position: 'relative',
         }}>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={handleDrawerToggle}
+          <Box 
             sx={{ 
-              mr: 1, 
-              display: { md: 'none' },
-              padding: { xs: '12px' },  // Larger tap target
-              position: 'absolute',
-              left: '8px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 2000,  // Higher z-index to ensure it's above all content
-              backgroundColor: 'rgba(0, 0, 0, 0.05)',
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.1)',
-              },
-              width: '44px', // Fixed width
-              height: '44px', // Fixed height
+              display: { xs: 'flex', md: 'none' },
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <MenuIcon fontSize="medium" />
-          </IconButton>
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={toggleMobileNav}
+              sx={{
+                mr: 2, 
+                padding: '10px',
+                position: 'relative',
+                zIndex: 1300,
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.25)',
+                },
+              }}
+            >
+              <MenuIcon />
+            </IconButton>
+          </Box>
           
           <Typography
             variant={isSmallMobile ? "subtitle1" : "h6"}
             noWrap
             component="div"
-            sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }}
+            sx={{ 
+              flexGrow: 1, 
+              display: { xs: 'none', sm: 'block' },
+            }}
           >
             {(() => {
               // Determine current page title
@@ -502,10 +559,48 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             })()}
           </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 2 } }}>
+          {/* Mobile title */}
+          <Typography
+            variant="subtitle1"
+            noWrap
+            component="div"
+            sx={{ 
+              flexGrow: 1, 
+              display: { xs: 'block', sm: 'none' },
+              textAlign: 'center',
+              fontWeight: 'medium',
+            }}
+          >
+            {(() => {
+              // Determine current page title
+              if (pathname?.includes('/dashboard/admin')) return 'Admin Dashboard';
+              if (pathname?.includes('/dashboard/manager')) return 'Manager Dashboard';
+              if (pathname?.includes('/dashboard/employee')) return 'Employee Dashboard';
+              if (pathname?.includes('/dashboard/tasks')) return 'Tasks';
+              if (pathname?.includes('/dashboard/reports')) return 'Reports';
+              if (pathname?.includes('/dashboard/calendar')) return 'Calendar';
+              if (pathname?.includes('/dashboard/notices')) return 'Notice Board';
+              if (pathname?.includes('/dashboard/messages')) return 'Messages';
+              if (pathname?.includes('/dashboard/meetings')) return 'Meetings';
+              if (pathname?.includes('/dashboard/directory')) return 'Phone Directory';
+              if (pathname?.includes('/dashboard/company')) return 'Company Information';
+              if (pathname?.includes('/dashboard/profile')) return 'User Profile';
+              return 'Dashboard';
+            })()}
+          </Typography>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'flex-end',
+            gap: 1,
+            '& .MuiIconButton-root': {
+              color: 'white' // Set icon color to white to match the screenshot
+            }
+          }}>
             {/* Theme toggle */}
             <Tooltip title={mode === 'dark' ? 'Light Mode' : 'Dark Mode'}>
-              <IconButton color="inherit" onClick={toggleTheme} size={isMobile ? "small" : "medium"}>
+              <IconButton onClick={toggleTheme} size="medium">
                 {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
               </IconButton>
             </Tooltip>
@@ -516,18 +611,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {/* User profile menu */}
             <IconButton 
               onClick={handleMenuOpen}
-              size={isMobile ? "small" : "medium"}
+              size="medium"
               sx={{ 
                 p: 0.5,
-                ml: { xs: 0.5, sm: 1 },
-                border: `2px solid ${theme.palette.primary.contrastText}`,
+                ml: 0.5,
               }}
             >
               <Avatar 
                 sx={{ 
-                  width: { xs: 30, sm: 36 }, 
-                  height: { xs: 30, sm: 36 }, 
-                  bgcolor: theme.palette.primary.light 
+                  width: 36, 
+                  height: 36, 
+                  bgcolor: 'white',
+                  color: '#EE6417'
                 }}
               >
                 {user?.name?.charAt(0).toUpperCase()}
@@ -569,16 +664,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </AppBar>
       
       {/* Navigation drawer - Mobile */}
-      <Box
-        component="nav"
-        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
-      >
+      {isMobile && (
         <Drawer
           variant="temporary"
           open={mobileOpen}
-          onClose={handleDrawerToggle}
+          onClose={toggleMobileNav}
           ModalProps={{
-            keepMounted: true, // Better open performance on mobile
+            keepMounted: true,
+            disablePortal: false,
+            disableAutoFocus: false,
+            BackdropProps: {
+              invisible: false,
+            }
           }}
           sx={{
             display: { xs: 'block', md: 'none' },
@@ -586,21 +683,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               boxSizing: 'border-box', 
               width: drawerWidth,
               overflowX: 'hidden',
-              borderRadius: { xs: '0 16px 16px 0' },
               boxShadow: 3,
-              maxWidth: '85vw', // Prevent drawer from taking full width on small screens
+              zIndex: 2000,
             },
-            '& .MuiBackdrop-root': {
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(4px)',
-            },
-            zIndex: 2100, // Ensure drawer is above everything
+            zIndex: 1400,
+          }}
+          SlideProps={{
+            direction: 'right',
+            timeout: { enter: 300, exit: 300 }
           }}
         >
           {drawer}
         </Drawer>
-        
-        {/* Navigation drawer - Desktop */}
+      )}
+      
+      {/* Navigation drawer - Desktop (unchanged) */}
+      <Box
+        component="nav"
+        sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 }, display: { xs: 'none', md: 'block' } }}
+      >
         <Drawer
           variant="permanent"
           sx={{

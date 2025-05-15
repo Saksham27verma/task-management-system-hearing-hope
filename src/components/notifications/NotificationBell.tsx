@@ -331,8 +331,9 @@ const NotificationBell = memo(() => {
           sx={{ maxHeight: isMobile ? '70vh' : 'auto', overflow: 'auto' }}
           className={styles.notificationList}
         >
-          {sortedNotifications.map((notification, index) => (
-            <React.Fragment key={`notification-fragment-${notification.id}`}>
+          {sortedNotifications.map((notification, index) => {
+            // Return MenuItem and Divider as an array instead of fragment
+            const menuItem = (
               <MenuItem 
                 key={`notification-${notification.id}`}
                 onClick={() => handleNotificationClick(notification)}
@@ -439,11 +440,18 @@ const NotificationBell = memo(() => {
                   />
                 </Stack>
               </MenuItem>
-              {index < sortedNotifications.length - 1 && (
+            );
+            
+            // Only add divider if not the last item
+            if (index < sortedNotifications.length - 1) {
+              return [
+                menuItem,
                 <Divider key={`divider-${notification.id}`} />
-              )}
-            </React.Fragment>
-          ))}
+              ];
+            }
+            
+            return menuItem;
+          })}
         </Box>
       )}
       
