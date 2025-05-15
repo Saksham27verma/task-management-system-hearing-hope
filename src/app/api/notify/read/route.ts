@@ -62,10 +62,7 @@ export async function PUT(request: NextRequest) {
       });
     } catch (error) {
       console.error('Error marking notifications as read:', error);
-      return NextResponse.json(
-        { success: false, message: 'Failed to mark notifications as read' },
-        { status: 500 }
-      );
+      return NextResponse.json({ success: false, message: 'Server error' }, { status: 500 });
     }
   });
 } 

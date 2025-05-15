@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo, useRef, useMemo } from 'react';
+import React, { useState, useCallback, memo, useRef, useMemo } from 'react';
 import { 
   Badge, 
   IconButton, 
@@ -14,12 +14,9 @@ import {
   Snackbar,
   Alert,
   Stack,
-  Button,
   useMediaQuery,
   useTheme,
-  SwipeableDrawer,
-  AppBar,
-  Toolbar
+  SwipeableDrawer
 } from '@mui/material';
 import { 
   NotificationsOutlined as NotificationsIcon,
@@ -29,10 +26,7 @@ import {
   DoneAll as MarkReadIcon,
   DeleteOutline as ClearIcon,
   Refresh as RefreshIcon,
-  MarkChatRead as MarkChatReadIcon,
   Done as DoneIcon,
-  Campaign as CampaignIcon,
-  NewReleases as NewReleasesIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
 import { useNotifications } from '@/contexts/NotificationContext';

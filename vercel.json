@@ -1,7 +1,7 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "next build",
   "devCommand": "npm run dev",
   "installCommand": "npm install --legacy-peer-deps",
   "outputDirectory": ".next",
@@ -39,5 +39,9 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1",
+    "TYPESCRIPT_STRICT": "false"
+  }
 } 

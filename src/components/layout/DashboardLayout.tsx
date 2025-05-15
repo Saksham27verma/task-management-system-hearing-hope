@@ -191,7 +191,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (isMobile && mobileOpen) {
       setMobileOpen(false);
     }
-  }, [pathname, isMobile]);
+  }, [pathname, isMobile, mobileOpen]);
   
   // Handle profile menu
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
