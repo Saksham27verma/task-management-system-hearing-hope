@@ -227,20 +227,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     };
   }, [mobileOpen]);
   
-  // Add a global click handler for debugging
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Open drawer when pressing 'm' key (for testing)
-      if (e.key === 'm' && isMobile) {
-        console.log('Force toggle mobile nav via key');
-        toggleMobileNav();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [toggleMobileNav, isMobile]);
-  
   // Navigate to profile
   const handleProfileClick = () => {
     handleMenuClose();
