@@ -36,6 +36,8 @@ import {
   AccordionDetails,
   Card,
   Snackbar,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import {
@@ -71,6 +73,7 @@ import {
   isSameMonth
 } from 'date-fns';
 import { useNotificationManager } from '@/hooks/useNotificationManager';
+import { useConfetti } from '@/contexts/ConfettiContext';
 
 // Map JS day index (0-6, Sunday-Saturday) to weekday names
 const JS_DAY_TO_WEEKDAY = {
@@ -85,7 +88,10 @@ const JS_DAY_TO_WEEKDAY = {
 
 export default function TaskDetailPage({ params }: any) {
   const router = useRouter();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.up('sm'));
   const { user } = useAuth();
+  const { showConfetti } = useConfetti();
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -263,6 +269,12 @@ export default function TaskDetailPage({ params }: any) {
           setTask(taskData.task);
           setCompleteDialogOpen(false);
           setCompleteRemarks('');
+          
+          // Show confetti animation
+          showConfetti({
+            pieces: 500,
+            duration: 5000
+          });
           
           // Show notification for recurring task creation
           if (data.newRecurringTaskId) {
@@ -1019,15 +1031,29 @@ export default function TaskDetailPage({ params }: any) {
             <Box sx={{ width: { xs: '100%', md: '50%' } }}>
               <Paper sx={{ p: 2, height: '100%' }}>
                 <Stack spacing={2} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <PersonIcon color="primary" fontSize="small" />
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                    <PersonIcon color="primary" fontSize="small" sx={{ mt: 0.5 }} />
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
                         Assigned To
                       </Typography>
-                      <Typography variant="body2">
-                        {task.assignedTo?.name || 'Unknown'}
-                      </Typography>
+                      {Array.isArray(task.assignedTo) ? (
+                        task.assignedTo.length > 0 ? (
+                          <Stack spacing={0.5}>
+                            {task.assignedTo.map((user, index) => (
+                              <Typography key={index} variant="body2">
+                                {user?.name || 'Unknown'}
+                              </Typography>
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Typography variant="body2">Unknown</Typography>
+                        )
+                      ) : (
+                        <Typography variant="body2">
+                          {task.assignedTo?.name || 'Unknown'}
+                        </Typography>
+                      )}
                     </Box>
                   </Box>
                   

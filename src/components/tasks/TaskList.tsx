@@ -62,6 +62,7 @@ import {
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useConfetti } from '@/contexts/ConfettiContext';
 
 // Status enum to map status values to readable text and colors
 const TaskStatus = {
@@ -90,6 +91,7 @@ export default function TaskList() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const router = useRouter();
   const { user } = useAuth();
+  const { showConfetti } = useConfetti();
   
   // State for tasks data and loading
   const [tasks, setTasks] = useState<any[]>([]);
@@ -121,6 +123,9 @@ export default function TaskList() {
   const [batchDeleteDialogOpen, setBatchDeleteDialogOpen] = useState(false);
   const [batchStatusDialogOpen, setBatchStatusDialogOpen] = useState(false);
   const [batchStatus, setBatchStatus] = useState<string>('');
+  
+  // Track position for confetti
+  const [completedTaskPosition, setCompletedTaskPosition] = useState({ x: 0, y: 0 });
   
   // Derived state for batch operations
   const isBatchMenuOpen = Boolean(batchMenuAnchor);
@@ -317,7 +322,15 @@ export default function TaskList() {
   };
   
   // Handle mark as complete via API
-  const handleMarkComplete = async (taskId: string) => {
+  const handleMarkComplete = async (taskId: string, event?: React.MouseEvent) => {
+    // Store the click position for confetti if event is provided
+    if (event) {
+      setCompletedTaskPosition({
+        x: event.clientX,
+        y: event.clientY
+      });
+    }
+    
     try {
       // Make API request to mark the task as complete
       const response = await fetch(`/api/tasks/${taskId}/complete`, {
@@ -341,6 +354,14 @@ export default function TaskList() {
             ? { ...task, status: 'COMPLETED', completedAt: new Date().toISOString() } 
             : task
         ));
+        
+        // Show confetti animation
+        showConfetti({
+          x: completedTaskPosition.x,
+          y: completedTaskPosition.y,
+          pieces: 300,
+          duration: 5000
+        });
       } else {
         setError(data.message || 'Failed to mark task as complete');
       }
@@ -690,8 +711,8 @@ export default function TaskList() {
                     <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Due Date</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', sm: 'table-cell' } }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>Priority</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap' }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' }, minWidth: 100 }}>Priority</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', whiteSpace: 'nowrap', minWidth: 160, textAlign: 'center' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -717,9 +738,11 @@ export default function TaskList() {
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <PersonIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
                           <Typography variant="body2">
-                            {task.assignedTo && task.assignedTo.name
-                              ? task.assignedTo.name
-                              : 'Unknown'}
+                            {Array.isArray(task.assignedTo) 
+                              ? (task.assignedTo.length > 0 
+                                ? (task.assignedTo[0]?.name || 'Unknown') + (task.assignedTo.length > 1 ? ` +${task.assignedTo.length - 1}` : '')
+                                : 'Unknown')
+                              : (task.assignedTo?.name || 'Unknown')}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -727,9 +750,7 @@ export default function TaskList() {
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <PersonIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
                           <Typography variant="body2">
-                            {task.createdBy && task.createdBy.name
-                              ? task.createdBy.name
-                              : 'System'}
+                            {task.createdBy?.name || task.assignedBy?.name || 'System'}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -770,7 +791,7 @@ export default function TaskList() {
                         />
                       </TableCell>
                       <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 80 }}>
                           <PriorityHighIcon 
                             fontSize="small" 
                             sx={{ 
@@ -788,12 +809,25 @@ export default function TaskList() {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Stack direction="row" spacing={0.5} justifyContent="center">
+                          {task.status !== 'COMPLETED' && (
+                            <Tooltip title="Mark Complete">
+                              <IconButton
+                                size="small"
+                                color="success"
+                                onClick={(e) => handleMarkComplete(task._id, e)}
+                                sx={{ p: 0.75 }}
+                              >
+                                <CheckCircleIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           <Tooltip title="Update Progress">
                             <IconButton
                               size="small"
                               color="primary"
                               onClick={(e) => handleUpdateTask(task._id, e)}
+                              sx={{ p: 0.75 }}
                             >
                               <UpdateIcon fontSize="small" />
                             </IconButton>
@@ -805,6 +839,7 @@ export default function TaskList() {
                                   size="small"
                                   color="info"
                                   onClick={(e) => handleEditTask(task._id, e)}
+                                  sx={{ p: 0.75 }}
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
@@ -814,6 +849,7 @@ export default function TaskList() {
                                   size="small"
                                   color="error"
                                   onClick={(e) => handleDeleteClick(task._id, e)}
+                                  sx={{ p: 0.75 }}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>

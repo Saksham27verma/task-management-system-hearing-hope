@@ -13,6 +13,7 @@ import {
   Tooltip,
   LinearProgress,
   Divider,
+  CircularProgress,
 } from '@mui/material';
 import {
   AccessTime as TimeIcon,
@@ -21,10 +22,12 @@ import {
   MoreVert as MoreIcon,
   Edit as EditIcon,
   Assignment as AssignmentIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { formatDateHuman, isDatePast, getDaysRemaining } from '@/utils/dates';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTaskCompletion } from '@/app/dashboard/tasks/TaskCompletionProvider';
 
 // Define theme colors
 const ORANGE_COLOR = '#F26722';
@@ -68,7 +71,10 @@ interface TaskCardProps {
     assignedTo: {
       _id: string;
       name: string;
-    };
+    } | Array<{
+      _id: string;
+      name: string;
+    }>;
     assignedBy: {
       _id: string;
       name: string;
@@ -83,8 +89,13 @@ interface TaskCardProps {
 export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const isOwner = user?.id === task.assignedTo._id;
-  const isAssigner = user?.id === task.assignedBy._id;
+  const { completeTask, isCompletingTask } = useTaskCompletion();
+  
+  // Handle both single user and array of users for assignedTo
+  const isArray = Array.isArray(task.assignedTo);
+  const firstAssignee = isArray ? task.assignedTo[0] : task.assignedTo;
+  const isOwner = firstAssignee && user?.id === firstAssignee._id;
+  const isAssigner = user?.id === task.assignedBy?._id;
   const canEdit = isAssigner || user?.role === 'SUPER_ADMIN';
   
   // Check if task is due soon (3 days or less)
@@ -121,6 +132,12 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
     } else {
       router.push(`/dashboard/tasks/${task._id}/edit`);
     }
+  };
+
+  // Handle completing a task directly from the card
+  const handleCompleteTask = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await completeTask(task._id, e);
   };
 
   return (
@@ -213,7 +230,11 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <PersonIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
                 <Typography variant="body2" color="text.secondary">
-                  {task.assignedTo.name}
+                  {Array.isArray(task.assignedTo) 
+                    ? (task.assignedTo.length > 0 
+                      ? (task.assignedTo[0]?.name || 'Unknown') + (task.assignedTo.length > 1 ? ` +${task.assignedTo.length - 1}` : '')
+                      : 'Unknown')
+                    : (task.assignedTo?.name || 'Unknown')}
                 </Typography>
               </Box>
             </Tooltip>
@@ -243,18 +264,39 @@ export default function TaskCard({ task, onEdit, onUpdate }: TaskCardProps) {
         
         <Box>
           {isOwner && task.status !== 'COMPLETED' && (
-            <Button 
-              size="small" 
-              sx={{ 
-                color: ORANGE_COLOR,
-                '&:hover': {
-                  backgroundColor: LIGHT_ORANGE
-                }
-              }}
-              onClick={handleUpdateProgress}
-            >
-              Update Progress
-            </Button>
+            <>
+              <Button 
+                size="small" 
+                sx={{ 
+                  color: ORANGE_COLOR,
+                  '&:hover': {
+                    backgroundColor: LIGHT_ORANGE
+                  }
+                }}
+                onClick={handleUpdateProgress}
+              >
+                Update Progress
+              </Button>
+              
+              <IconButton
+                size="small"
+                color="success"
+                onClick={handleCompleteTask}
+                disabled={isCompletingTask}
+                sx={{ 
+                  ml: 1,
+                  '&:hover': {
+                    backgroundColor: LIGHT_TEAL
+                  }
+                }}
+              >
+                {isCompletingTask ? (
+                  <CircularProgress size={16} color="success" />
+                ) : (
+                  <CheckCircleIcon fontSize="small" />
+                )}
+              </IconButton>
+            </>
           )}
           
           {canEdit && (

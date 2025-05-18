@@ -33,13 +33,20 @@ export async function GET(
       }
       
       // Check if user has permission to view this task
-      if (user.role === 'EMPLOYEE' && 
-          task.assignedTo._id.toString() !== user.userId &&
-          task.assignedBy._id.toString() !== user.userId) {
-        return NextResponse.json(
-          { success: false, message: 'Not authorized to view this task' },
-          { status: 403 }
-        );
+      if (user.role === 'EMPLOYEE') {
+        // Handle both array of users and single user for assignedTo
+        const isAssigned = Array.isArray(task.assignedTo)
+          ? task.assignedTo.some(assignee => assignee._id.toString() === user.userId)
+          : task.assignedTo._id.toString() === user.userId;
+        
+        const isAssigner = task.assignedBy._id.toString() === user.userId;
+        
+        if (!isAssigned && !isAssigner) {
+          return NextResponse.json(
+            { success: false, message: 'Not authorized to view this task' },
+            { status: 403 }
+          );
+        }
       }
       
       return NextResponse.json({

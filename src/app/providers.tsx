@@ -8,6 +8,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider, useThemeMode } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { ConfettiProvider } from '@/contexts/ConfettiContext';
 import { getTheme } from '@/lib/theme';
 import { DashboardLoadingProvider } from './dashboard-loading';
 
@@ -31,9 +32,11 @@ export default function Providers({ children }: { children: ReactNode }) {
         <LocalizationProvider dateAdapter={AdapterDateFns}>
           <AuthProvider>
             <NotificationProvider>
-              <DashboardLoadingProvider>
-                {children}
-              </DashboardLoadingProvider>
+              <ConfettiProvider>
+                <DashboardLoadingProvider>
+                  {children}
+                </DashboardLoadingProvider>
+              </ConfettiProvider>
             </NotificationProvider>
           </AuthProvider>
         </LocalizationProvider>

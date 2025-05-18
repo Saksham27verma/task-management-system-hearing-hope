@@ -134,9 +134,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
 
         const data = await response.json();
         if (data.success) {
-          // Filter the users to only include EMPLOYEE and MANAGER roles
+          // Filter the users to include EMPLOYEE, MANAGER, and SUPER_ADMIN roles
           const filteredUsers = data.users.filter((user: any) => 
-            user.role === 'EMPLOYEE' || user.role === 'MANAGER'
+            user.role === 'EMPLOYEE' || user.role === 'MANAGER' || user.role === 'SUPER_ADMIN'
           );
           setEmployees(filteredUsers);
         } else {
@@ -590,7 +590,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
               value="select-all"
               sx={{ fontWeight: 'bold', borderBottom: '1px solid #eee' }}
             >
-              Select All Employees ({employees.length})
+              Select All Users ({employees.length})
             </MenuItem>
             {employees.map((employee) => (
               <MenuItem key={employee._id} value={employee._id}>
@@ -604,8 +604,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           {formData.assignedTo.length > 1 && (
             <FormHelperText>
               {formData.assignedTo.length === employees.length 
-                ? `All employees (${employees.length}) assigned to this task.` 
-                : `Multiple employees (${formData.assignedTo.length}) assigned. All will receive notifications.`}
+                ? `All users (${employees.length}) assigned to this task.` 
+                : `Multiple users (${formData.assignedTo.length}) assigned. All will receive notifications.`}
             </FormHelperText>
           )}
         </FormControl>
@@ -633,7 +633,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
               }
             }}
           >
-            Select All Employees
+            Select All Users
           </Button>
           <Button 
             size="small" 
