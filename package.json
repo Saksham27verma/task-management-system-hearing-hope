@@ -33,6 +33,7 @@
     "next": "15.3.1",
     "next-auth": "^4.24.11",
     "nodemailer": "^6.10.1",
+    "openai": "^4.100.0",
     "pdfkit": "^0.17.0",
     "pdfkit-table": "^0.1.99",
     "react": "^19.0.0",

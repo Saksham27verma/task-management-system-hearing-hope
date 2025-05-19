@@ -52,6 +52,7 @@ A comprehensive task management system built for Hearing Hope organization. The 
    NEXT_PUBLIC_APP_URL=http://localhost:3000
    NEXT_PUBLIC_GOOGLE_API_KEY=YOUR_API_KEY_HERE
    NEXT_PUBLIC_GOOGLE_CLIENT_ID=YOUR_CLIENT_ID_HERE.apps.googleusercontent.com
+   HUGGINGFACE_API_KEY=your_token_here
    ```
 
 4. Run the development server:
@@ -115,4 +116,29 @@ To use the Google Meet integration feature in the meetings module:
 - Create Google Meet meetings that automatically appear in your Google Calendar
 - The Google Calendar API is used to create events with Google Meet conferencing
 - Join and manage meetings directly from the dashboard
-- Uses the same Google authentication as the calendar integration 
+- Uses the same Google authentication as the calendar integration
+
+## AI Assistant
+
+The task management system includes a built-in AI assistant that helps users with various tasks and questions.
+
+### Features
+
+- Provides instant answers to common task management questions
+- Shows personalized information based on user's tasks and deadlines
+- Offers guidance on how to use system features
+- Works entirely offline with no external API dependencies
+
+### Using the Assistant
+
+- Click the AI icon in the bottom right corner of the screen
+- Ask questions about tasks, system navigation, or request help
+- Get contextual responses based on your current tasks
+
+### Example Questions
+
+- "How do I create a task?"
+- "Where can I find my notifications?"
+- "How do I update task progress?"
+- "What are my upcoming deadlines?"
+- "How do I complete a task?" 

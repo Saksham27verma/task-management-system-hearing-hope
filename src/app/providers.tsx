@@ -9,6 +9,8 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider, useThemeMode } from '@/contexts/ThemeContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { ConfettiProvider } from '@/contexts/ConfettiContext';
+import { AssistantProvider } from '@/contexts/AssistantContext';
+import AssistantWidget from '@/components/assistant/AssistantWidget';
 import { getTheme } from '@/lib/theme';
 import { DashboardLoadingProvider } from './dashboard-loading';
 
@@ -34,7 +36,10 @@ export default function Providers({ children }: { children: ReactNode }) {
             <NotificationProvider>
               <ConfettiProvider>
                 <DashboardLoadingProvider>
-                  {children}
+                  <AssistantProvider>
+                    {children}
+                    <AssistantWidget />
+                  </AssistantProvider>
                 </DashboardLoadingProvider>
               </ConfettiProvider>
             </NotificationProvider>
