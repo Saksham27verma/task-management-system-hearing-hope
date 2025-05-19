@@ -72,3 +72,6 @@ build/
 .eslintcache
 .cache .env.production
 .env.production
+
+# Archives
+/archives

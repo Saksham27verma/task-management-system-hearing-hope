@@ -43,7 +43,17 @@ export async function POST(
       }
       
       // Check if user is assigned to this task or is a manager/admin
-      const isAssignedUser = task.assignedTo._id.toString() === user.userId;
+      let isAssignedUser = false;
+      
+      if (Array.isArray(task.assignedTo)) {
+        // If assignedTo is an array, check if user is in the array
+        isAssignedUser = task.assignedTo.some(assignee => 
+          assignee._id.toString() === user.userId
+        );
+      } else {
+        // If assignedTo is a single object
+        isAssignedUser = task.assignedTo._id.toString() === user.userId;
+      }
       
       if (!isAssignedUser && user.role === 'EMPLOYEE') {
         return NextResponse.json(
