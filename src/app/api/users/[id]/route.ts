@@ -91,7 +91,8 @@ export async function PUT(
         position,
         role,
         isActive,
-        password
+        password,
+        currentPassword
       } = await request.json();
       
       await connectToDatabase();
@@ -162,6 +163,26 @@ export async function PUT(
       
       // Update password if provided
       if (password) {
+        // If user is changing their own password, require current password verification
+        if (isSameUser && !isSuperAdmin) {
+          // If current password wasn't provided
+          if (!currentPassword) {
+            return NextResponse.json(
+              { success: false, message: 'Current password is required to change password' },
+              { status: 400 }
+            );
+          }
+          
+          // Verify current password
+          const isPasswordValid = await userToUpdate.comparePassword(currentPassword);
+          if (!isPasswordValid) {
+            return NextResponse.json(
+              { success: false, message: 'Current password is incorrect' },
+              { status: 400 }
+            );
+          }
+        }
+        
         if (password.length < 6) {
           return NextResponse.json(
             { success: false, message: 'Password must be at least 6 characters' },

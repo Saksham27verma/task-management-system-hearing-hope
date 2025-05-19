@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
       await connectToDatabase();
       
       // Different query based on user role
-      let taskQuery = {};
-      let userQuery = {};
+      let taskQuery: any = {};
+      let userQuery: any = {};
       
       if (user.role === 'EMPLOYEE') {
         // Employees can only see their own tasks
@@ -27,6 +27,25 @@ export async function GET(request: NextRequest) {
             { assignedTo: user.userId }
           ]
         };
+        
+        // Find super admin users for filtering
+        const superAdminUsers = await User.find({ role: 'SUPER_ADMIN' }).select('_id').lean();
+        const superAdminIds = superAdminUsers.map(admin => admin._id.toString());
+        
+        // Add exclusion for tasks where both assignedBy and assignedTo are super admins
+        if (superAdminIds.length > 0) {
+          // First, add the exclusion to the query
+          if (!taskQuery.$and) taskQuery.$and = [];
+          
+          taskQuery.$and = [{
+            $or: [
+              // Either the assignedBy is NOT a super admin
+              { assignedBy: { $nin: superAdminIds } },
+              // OR at least one assignedTo is NOT a super admin
+              { assignedTo: { $nin: superAdminIds } }
+            ]
+          }];
+        }
         
         // Managers cannot see super admins
         userQuery = { role: { $ne: 'SUPER_ADMIN' } };

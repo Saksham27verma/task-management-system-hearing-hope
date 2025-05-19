@@ -1005,15 +1005,18 @@ export default function CalendarPage() {
         }}
         className="google-calendar-section"
       >
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<EventIcon />}
-          onClick={handleCreateTask}
-          sx={{ width: { xs: '100%', sm: 'auto' } }}
-        >
-          Add Task
-        </Button>
+        {/* Only show Add Task button for managers and super admins */}
+        {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<EventIcon />}
+            onClick={handleCreateTask}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
+          >
+            Add Task
+          </Button>
+        )}
         
         {googleCalendarConnected ? (
           <Box sx={{ display: 'flex', gap: 1, width: { xs: '100%', sm: 'auto' } }}>
@@ -1083,14 +1086,17 @@ export default function CalendarPage() {
               <Typography variant="body1" color="text.secondary">
                 No tasks scheduled for this day
               </Typography>
-              <Button 
-                variant="outlined" 
-                color="primary" 
-                sx={{ mt: 2 }}
-                onClick={handleCreateTask}
-              >
-                Add Task
-              </Button>
+              {/* Only show Add Task button for managers and super admins */}
+              {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
+                <Button 
+                  variant="outlined" 
+                  color="primary" 
+                  sx={{ mt: 2 }}
+                  onClick={handleCreateTask}
+                >
+                  Add Task
+                </Button>
+              )}
             </Box>
           ) : (
             <List sx={{ py: 0 }}>

@@ -39,8 +39,16 @@ export default function MeetingsPage() {
       />
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        To use Google Meet integration, you'll need to sign in with your Google account. 
-        Once signed in, you can create and join meetings directly from this interface.
+        {canCreateMeetings ? (
+          <>
+            To use Google Meet integration, you'll need to sign in with your Google account. 
+            Once signed in, you can create and join meetings directly from this interface.
+          </>
+        ) : (
+          <>
+            You can view and join scheduled meetings from this page. Contact your manager if you need to schedule a new meeting.
+          </>
+        )}
       </Alert>
       
       <Paper elevation={2} sx={{ p: 3, mb: 4 }}>

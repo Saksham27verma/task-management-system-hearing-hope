@@ -5,13 +5,13 @@ import Task from '@/models/Task';
 import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, updateTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
 
-// POST /api/tasks/[id]/calendar-sync - Sync a specific task to Google Calendar
+// POST /api/tasks/[id]/calendar-sync - Sync a task to Google Calendar
 export async function POST(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     try {
@@ -104,7 +104,7 @@ export async function POST(
     } catch (error) {
       console.error(`Error syncing task ${taskId} to Google Calendar:`, error);
       return NextResponse.json(
-        { success: false, message: 'Failed to sync task with Google Calendar' },
+        { success: false, message: 'Failed to sync task to Google Calendar' },
         { status: 500 }
       );
     }

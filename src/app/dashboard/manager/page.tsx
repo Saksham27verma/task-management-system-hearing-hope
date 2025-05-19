@@ -141,7 +141,7 @@ export default function ManagerDashboard() {
     const fetchRecentTasks = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch('/api/tasks?limit=3&sort=createdAt:desc');
+        const response = await fetch('/api/tasks?limit=3&sort=createdAt:desc&filterSuperAdminTasks=true');
         const data = await response.json();
         
         if (data.success) {
@@ -451,7 +451,7 @@ export default function ManagerDashboard() {
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>{task.title}</Typography>
                       }
                       secondary={
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+                        <Box component="div" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
                           <Chip 
                             label={task.status} 
                             size="small" 
@@ -464,9 +464,9 @@ export default function ManagerDashboard() {
                             color={getPriorityColor(task.priority) as any}
                             sx={{ height: 24 }}
                           />
-                          <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                            Due: {formatDate(task.dueDate)}
-                          </Typography>
+                          <Box component="div" sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                            <Typography variant="caption">Due: {formatDate(task.dueDate)}</Typography>
+                          </Box>
                         </Box>
                       }
                     />
@@ -537,9 +537,11 @@ export default function ManagerDashboard() {
                         <Typography variant="body1" sx={{ fontWeight: 500 }}>{notice.title}</Typography>
                       }
                       secondary={
-                        <Typography variant="caption" color="textSecondary">
-                          Posted: {formatDate(notice.createdAt)}
-                        </Typography>
+                        <Box component="div">
+                          <Typography variant="caption" color="textSecondary">
+                            Posted: {formatDate(notice.createdAt)}
+                          </Typography>
+                        </Box>
                       }
                     />
                   </ListItem>

@@ -5,6 +5,7 @@ import { withAuth } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 import User from '@/models/User';
 import { addDays, addWeeks, addMonths } from 'date-fns';
+import Notification from '@/models/Notification';
 
 // Helper to create a recurring task based on the completed task
 async function createRecurringTask(originalTask, user) {
@@ -62,10 +63,10 @@ async function createRecurringTask(originalTask, user) {
 // POST /api/tasks/[id]/complete - Mark a task as complete
 export async function POST(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     try {
@@ -259,7 +260,7 @@ export async function POST(
     } catch (error) {
       console.error(`Error completing task ${taskId}:`, error);
       return NextResponse.json(
-        { success: false, message: 'Failed to complete task' },
+        { success: false, message: 'Failed to mark task as complete' },
         { status: 500 }
       );
     }

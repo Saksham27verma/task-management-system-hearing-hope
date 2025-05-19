@@ -6,14 +6,15 @@ import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
 import User from '@/models/User';
 import { formatDateHuman } from '@/utils/dates';
 import { format, isValid, isSameDay, getDay, addDays } from 'date-fns';
+import Notification from '@/models/Notification';
 
 // POST /api/tasks/[id]/progress - Add progress update to a task
 export async function POST(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     try {
@@ -195,9 +196,9 @@ export async function POST(
         message: 'Progress update added successfully'
       });
     } catch (error) {
-      console.error(`Error updating progress for task ${taskId}:`, error);
+      console.error(`Error adding progress update to task ${taskId}:`, error);
       return NextResponse.json(
-        { success: false, message: 'Failed to update task progress' },
+        { success: false, message: 'Failed to add progress update' },
         { status: 500 }
       );
     }

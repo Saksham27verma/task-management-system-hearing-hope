@@ -129,22 +129,32 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
         const response = await fetch('/api/users?isActive=true');
         
         if (!response.ok) {
-          throw new Error('Failed to fetch employees');
+          throw new Error('Failed to fetch users');
         }
 
         const data = await response.json();
         if (data.success) {
-          // Filter the users to include EMPLOYEE, MANAGER, and SUPER_ADMIN roles
-          const filteredUsers = data.users.filter((user: any) => 
-            user.role === 'EMPLOYEE' || user.role === 'MANAGER' || user.role === 'SUPER_ADMIN'
-          );
+          // Filter users based on role
+          let filteredUsers = data.users || [];
+          
+          // If user is a manager, they can only assign to employees
+          if (user?.role === 'MANAGER') {
+            filteredUsers = filteredUsers.filter((u: any) => u.role === 'EMPLOYEE');
+          }
+          // If user is super admin, they can assign to anyone
+          else if (user?.role === 'SUPER_ADMIN') {
+            filteredUsers = filteredUsers.filter((u: any) => 
+              u.role === 'EMPLOYEE' || u.role === 'MANAGER' || u.role === 'SUPER_ADMIN'
+            );
+          }
+          
           setEmployees(filteredUsers);
         } else {
-          throw new Error(data.message || 'Failed to fetch employees');
+          throw new Error(data.message || 'Failed to fetch users');
         }
       } catch (error) {
-        console.error('Error fetching employees:', error);
-        setFetchError('Failed to load employees.');
+        console.error('Error fetching users:', error);
+        setFetchError('Failed to load users.');
         setEmployees([]);
       } finally {
         setIsLoading(false);
@@ -152,7 +162,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     };
 
     fetchEmployees();
-  }, []);
+  }, [user]);
 
   // Calculate due date based on task type when start date or task type changes
   useEffect(() => {
@@ -385,7 +395,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
       
       const data = await response.json();
       
-      if (data.success) {
+      if (response.ok && data.success) {
         onSubmit(true);
       } else {
         setSubmitError(data.message || 'Failed to save task.');

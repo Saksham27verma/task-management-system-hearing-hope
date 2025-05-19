@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState('');
   const router = useRouter();
   const { user } = useAuth();
 
@@ -44,6 +44,16 @@ export default function TasksPage() {
     };
 
     fetchTasks();
+  }, []);
+
+  useEffect(() => {
+    // Check URL for error parameter
+    const url = new URL(window.location.href);
+    const errorParam = url.searchParams.get('error');
+    
+    if (errorParam === 'unauthorized') {
+      setError('You do not have permission to view that task.');
+    }
   }, []);
 
   const handleTaskEdit = (id: string) => {

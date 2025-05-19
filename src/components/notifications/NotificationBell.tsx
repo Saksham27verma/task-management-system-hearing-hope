@@ -230,10 +230,12 @@ const NotificationBell = memo(() => {
     });
   }, [notifications]);
 
-  // Notification content that is shared between mobile drawer and desktop menu
-  const notificationContent = (
-    <>
-      <Box sx={{ 
+  // Create notification content items as an array for Menu
+  const notificationItems = [
+    // Header with actions
+    <Box 
+      key="notification-header"
+      sx={{ 
         px: isMobile ? 1.5 : 2, 
         py: 1.5, 
         display: 'flex', 
@@ -244,70 +246,82 @@ const NotificationBell = memo(() => {
         bgcolor: theme.palette.background.paper,
         zIndex: 1,
         borderBottom: `1px solid ${theme.palette.divider}`
-      }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem' }}>
-          Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
-        </Typography>
-        <Box>
-          <Tooltip title="Refresh">
+      }}
+    >
+      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', fontSize: isMobile ? '0.9rem' : '1rem' }}>
+        Notifications {unreadCount > 0 && `(${unreadCount} unread)`}
+      </Typography>
+      <Box>
+        <Tooltip title="Refresh">
+          <IconButton 
+            size="small" 
+            onClick={handleRefresh}
+            disabled={loading}
+            sx={{ mr: 0.5 }}
+          >
+            {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Mark all as read">
+          <IconButton 
+            size="small" 
+            onClick={handleMarkAllAsRead}
+            disabled={unreadCount === 0 || loading}
+            sx={{ mr: 0.5 }}
+          >
+            <MarkReadIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Clear all">
+          <IconButton 
+            size="small" 
+            onClick={handleClearNotifications}
+            disabled={notifications.length === 0 || loading}
+          >
+            <ClearIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        {isMobile && (
+          <Tooltip title="Close">
             <IconButton 
               size="small" 
-              onClick={handleRefresh}
-              disabled={loading}
-              sx={{ mr: 0.5 }}
+              onClick={handleClose}
+              sx={{ ml: 0.5 }}
             >
-              {loading ? <CircularProgress size={16} /> : <RefreshIcon fontSize="small" />}
+              <CloseIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title="Mark all as read">
-            <IconButton 
-              size="small" 
-              onClick={handleMarkAllAsRead}
-              disabled={unreadCount === 0 || loading}
-              sx={{ mr: 0.5 }}
-            >
-              <MarkReadIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Clear all">
-            <IconButton 
-              size="small" 
-              onClick={handleClearNotifications}
-              disabled={notifications.length === 0 || loading}
-            >
-              <ClearIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          {isMobile && (
-            <Tooltip title="Close">
-              <IconButton 
-                size="small" 
-                onClick={handleClose}
-                sx={{ ml: 0.5 }}
-              >
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          )}
-        </Box>
+        )}
       </Box>
-      
-      {error && (
-        <Box sx={{ p: 2, textAlign: 'center' }}>
-          <Typography variant="body2" color="error">
-            {error}
-          </Typography>
-        </Box>
-      )}
-      
-      {loading && notifications.length === 0 && (
-        <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress size={24} />
-        </Box>
-      )}
-      
-      {!loading && notifications.length === 0 && (
-        <Box sx={{ 
+    </Box>
+  ];
+  
+  // Error message if there is one
+  if (error) {
+    notificationItems.push(
+      <Box key="notification-error" sx={{ p: 2, textAlign: 'center' }}>
+        <Typography variant="body2" color="error">
+          {error}
+        </Typography>
+      </Box>
+    );
+  }
+  
+  // Loading state
+  if (loading && notifications.length === 0) {
+    notificationItems.push(
+      <Box key="notification-loading" sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
+  
+  // Empty state
+  if (!loading && notifications.length === 0) {
+    notificationItems.push(
+      <Box 
+        key="notification-empty"
+        sx={{ 
           p: 4, 
           textAlign: 'center',
           display: 'flex',
@@ -315,159 +329,172 @@ const NotificationBell = memo(() => {
           alignItems: 'center',
           justifyContent: 'center',
           minHeight: isMobile ? '40vh' : 'auto'
-        }}>
-          <NotificationsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-          <Typography variant="body1" color="text.secondary">
-            No notifications
-          </Typography>
-          <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
-            You're all caught up!
-          </Typography>
-        </Box>
-      )}
-      
-      {sortedNotifications.length > 0 && (
-        <Box 
-          sx={{ maxHeight: isMobile ? '70vh' : 'auto', overflow: 'auto' }}
-          className={styles.notificationList}
+        }}
+      >
+        <NotificationsIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+        <Typography variant="body1" color="text.secondary">
+          No notifications
+        </Typography>
+        <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+          You're all caught up!
+        </Typography>
+      </Box>
+    );
+  }
+  
+  // Notification list
+  if (sortedNotifications.length > 0) {
+    // Create flat array for notification items and dividers
+    const listItems: React.ReactNode[] = [];
+    
+    sortedNotifications.forEach((notification, index) => {
+      // Add the menu item
+      listItems.push(
+        <MenuItem 
+          key={`notification-${notification.id}`}
+          onClick={() => handleNotificationClick(notification)}
+          className={styles.touchFeedback}
+          sx={{ 
+            py: 1.5,
+            backgroundColor: !notification.read 
+              ? theme.palette.mode === 'dark' 
+                ? 'rgba(255, 255, 255, 0.08)' 
+                : 'rgba(0, 0, 0, 0.04)'
+              : 'transparent',
+            position: 'relative',
+            '&::before': !notification.read ? {
+              content: '""',
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              bottom: 0,
+              width: '4px',
+              backgroundColor: theme.palette.primary.main,
+              borderTopLeftRadius: '4px',
+              borderBottomLeftRadius: '4px'
+            } : {}
+          }}
         >
-          {sortedNotifications.map((notification, index) => {
-            // Return MenuItem and Divider as an array instead of fragment
-            const menuItem = (
-              <MenuItem 
-                key={`notification-${notification.id}`}
-                onClick={() => handleNotificationClick(notification)}
-                className={styles.touchFeedback}
-                sx={{ 
-                  py: 1.5,
-                  backgroundColor: !notification.read 
-                    ? theme.palette.mode === 'dark' 
-                      ? 'rgba(255, 255, 255, 0.08)' 
-                      : 'rgba(0, 0, 0, 0.04)'
-                    : 'transparent',
-                  position: 'relative',
-                  '&::before': !notification.read ? {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    top: 0,
-                    bottom: 0,
-                    width: '4px',
-                    backgroundColor: theme.palette.primary.main,
-                    borderTopLeftRadius: '4px',
-                    borderBottomLeftRadius: '4px'
-                  } : {}
-                }}
-              >
-                <Stack direction="row" spacing={1} width="100%">
-                  <ListItemIcon sx={{ 
-                    minWidth: { xs: '32px', sm: '40px' },
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    justifyContent: 'center',
-                    mt: 0.5
-                  }}>
-                    {getNotificationIcon(notification.type)}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={
-                      <Typography variant="body2" sx={{ 
-                        fontWeight: !notification.read ? 'bold' : 'normal',
-                        display: 'flex',
+          <Stack direction="row" spacing={1} width="100%">
+            <ListItemIcon sx={{ 
+              minWidth: { xs: '32px', sm: '40px' },
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center',
+              mt: 0.5
+            }}>
+              {getNotificationIcon(notification.type)}
+            </ListItemIcon>
+            <ListItemText 
+              primary={
+                <Typography variant="body2" sx={{ 
+                  fontWeight: !notification.read ? 'bold' : 'normal',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap'
+                }}>
+                  {notification.title}
+                  {!notification.read && (
+                    <Box component="span" sx={{ 
+                      ml: 1, 
+                      px: 0.75, 
+                      py: 0.25, 
+                      bgcolor: 'primary.main', 
+                      color: 'white', 
+                      borderRadius: 1,
+                      fontSize: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      whiteSpace: 'nowrap'
+                    }}
+                    className={styles.newBadge}
+                    >
+                      <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
+                      NEW
+                    </Box>
+                  )}
+                </Typography>
+              }
+              secondary={
+                <Box component="span">
+                  <Typography 
+                    variant="caption" 
+                    color="textSecondary" 
+                    component="span" 
+                    className={styles.notificationMessage}
+                  >
+                    {notification.message}
+                  </Typography>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mt: 0.5,
+                    justifyContent: 'space-between'
+                  }} component="span">
+                    <Typography 
+                      variant="caption" 
+                      color="textSecondary" 
+                      component="span"
+                    >
+                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                    </Typography>
+                    {notification.read && (
+                      <Box component="span" sx={{ 
+                        display: 'inline-flex', 
                         alignItems: 'center',
-                        flexWrap: 'wrap'
+                        color: 'success.main',
+                        fontSize: '0.75rem'
                       }}>
-                        {notification.title}
-                        {!notification.read && (
-                          <Box component="span" sx={{ 
-                            ml: 1, 
-                            px: 0.75, 
-                            py: 0.25, 
-                            bgcolor: 'primary.main', 
-                            color: 'white', 
-                            borderRadius: 1,
-                            fontSize: '0.75rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            whiteSpace: 'nowrap'
-                          }}
-                          className={styles.newBadge}
-                          >
-                            <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
-                            NEW
-                          </Box>
-                        )}
-                      </Typography>
-                    }
-                    secondary={
-                      <React.Fragment>
-                        <Typography 
-                          variant="caption" 
-                          color="textSecondary" 
-                          component="div" 
-                          className={styles.notificationMessage}
-                        >
-                          {notification.message}
-                        </Typography>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          mt: 0.5,
-                          justifyContent: 'space-between'
-                        }}>
-                          <Typography 
-                            variant="caption" 
-                            color="textSecondary" 
-                            component="span"
-                          >
-                            {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                          </Typography>
-                          {notification.read && (
-                            <Box component="span" sx={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center',
-                              color: 'success.main',
-                              fontSize: '0.75rem'
-                            }}>
-                              <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
-                              Read
-                            </Box>
-                          )}
-                        </Box>
-                      </React.Fragment>
-                    }
-                    sx={{ m: 0 }}
-                  />
-                </Stack>
-              </MenuItem>
-            );
-            
-            // Only add divider if not the last item
-            if (index < sortedNotifications.length - 1) {
-              return [
-                menuItem,
-                <Divider key={`divider-${notification.id}`} />
-              ];
-            }
-            
-            return menuItem;
-          })}
-        </Box>
-      )}
+                        <DoneIcon sx={{ fontSize: '0.75rem', mr: 0.25 }} />
+                        Read
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              }
+              sx={{ m: 0 }}
+            />
+          </Stack>
+        </MenuItem>
+      );
       
-      <Box sx={{ 
+      // Add divider if not the last item
+      if (index < sortedNotifications.length - 1) {
+        listItems.push(
+          <Divider key={`divider-${notification.id}`} />
+        );
+      }
+    });
+    
+    // Add the list container to the notificationItems
+    notificationItems.push(
+      <Box 
+        key="notification-list"
+        sx={{ maxHeight: isMobile ? '70vh' : 'auto', overflow: 'auto' }}
+        className={styles.notificationList}
+      >
+        {listItems}
+      </Box>
+    );
+  }
+  
+  // Footer with sync info
+  notificationItems.push(
+    <Box 
+      key="notification-footer"
+      sx={{ 
         p: 1, 
         textAlign: 'center', 
         borderTop: `1px solid ${theme.palette.divider}`,
         position: 'sticky',
         bottom: 0,
         bgcolor: theme.palette.background.paper
-      }}>
-        <Typography variant="caption" color="text.secondary">
-          {lastSyncText}
-        </Typography>
-      </Box>
-    </>
+      }}
+    >
+      <Typography variant="caption" color="text.secondary">
+        {lastSyncText}
+      </Typography>
+    </Box>
   );
   
   return (
@@ -531,7 +558,9 @@ const NotificationBell = memo(() => {
             horizontal: 'right',
           }}
         >
-          {notificationContent}
+          <div>
+            {notificationItems}
+          </div>
         </Menu>
       )}
       
@@ -582,7 +611,9 @@ const NotificationBell = memo(() => {
               className={styles.swipeHandle}
             />
           </Box>
-          {notificationContent}
+          <div>
+            {notificationItems}
+          </div>
         </SwipeableDrawer>
       )}
       
@@ -622,4 +653,4 @@ const NotificationBell = memo(() => {
 // Add display name for React DevTools
 NotificationBell.displayName = 'NotificationBell';
 
-export default NotificationBell; 
+export default NotificationBell;

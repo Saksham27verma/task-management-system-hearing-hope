@@ -657,15 +657,18 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
             Google Meet
           </Typography>
           <Box>
-            <Button
-              variant={isAuthenticated ? "outlined" : "contained"}
-              color={isAuthenticated ? "secondary" : "primary"}
-              onClick={handleGoogleAuth}
-              size="small"
-              sx={{ mr: 2 }}
-            >
-              {isAuthenticated ? "Sign Out" : "Sign In with Google"}
-            </Button>
+            {/* Only show Sign In/Out button if user can create meetings */}
+            {canCreateMeetings && (
+              <Button
+                variant={isAuthenticated ? "outlined" : "contained"}
+                color={isAuthenticated ? "secondary" : "primary"}
+                onClick={handleGoogleAuth}
+                size="small"
+                sx={{ mr: 2 }}
+              >
+                {isAuthenticated ? "Sign Out" : "Sign In with Google"}
+              </Button>
+            )}
             
             {canCreateMeetings && isAuthenticated && (
               <Box sx={{ display: 'inline-flex', gap: 1 }}>
@@ -709,7 +712,7 @@ const GoogleMeetIntegration: React.FC<GoogleMeetIntegrationProps> = ({ canCreate
           </Box>
         </Box>
 
-        {authError && (
+        {authError && canCreateMeetings && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {authError}
           </Alert>

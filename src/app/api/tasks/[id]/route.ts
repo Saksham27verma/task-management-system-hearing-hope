@@ -11,10 +11,10 @@ import Notification from '@/models/Notification';
 // GET /api/tasks/[id] - Get a specific task by ID
 export async function GET(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     try {
@@ -66,10 +66,10 @@ export async function GET(
 // PUT /api/tasks/[id] - Update a task
 export async function PUT(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     try {
@@ -178,19 +178,49 @@ export async function PUT(
               await notification.save();
             }
             
-            // Notify the task creator
+            // Check if this is a super admin-only task
+            const checkAssignees = async () => {
+              if (Array.isArray(task.assignedTo)) {
+                // Check if every assignee is a super admin
+                for (const assigneeId of task.assignedTo) {
+                  const assignee = await User.findById(assigneeId);
+                  if (!assignee || assignee.role !== 'SUPER_ADMIN') {
+                    return false; // Found a non-super-admin
+                  }
+                }
+                return true; // All are super admins
+              } else {
+                // Single assignee
+                const assignee = await User.findById(task.assignedTo);
+                return assignee && assignee.role === 'SUPER_ADMIN';
+              }
+            };
+            
+            // Check if assigner is a super admin
+            const assigner = await User.findById(task.assignedBy);
+            const isAssignedBySuperAdmin = assigner && assigner.role === 'SUPER_ADMIN';
+            
+            // Only proceed with notification if not a super admin-only task or if recipient is a super admin
             if (task.assignedBy.toString() !== user.userId) {
-              const notification = new Notification({
-                userId: task.assignedBy.toString(),
-                type: 'task',
-                title: 'Task Completed',
-                message: `Task "${task.title}" has been marked as complete.`,
-                link: `/dashboard/tasks/${task._id}`,
-                read: false,
-                createdAt: new Date()
-              });
+              const isAssignedToSuperAdminsOnly = await checkAssignees();
+              const isSuperAdminOnlyTask = isAssignedToSuperAdminsOnly && isAssignedBySuperAdmin;
               
-              await notification.save();
+              const taskCreator = await User.findById(task.assignedBy);
+              
+              // Skip notification if this is a super admin-only task and the creator is not a super admin
+              if (!isSuperAdminOnlyTask || (taskCreator && taskCreator.role === 'SUPER_ADMIN')) {
+                const notification = new Notification({
+                  userId: task.assignedBy.toString(),
+                  type: 'task',
+                  title: 'Task Completed',
+                  message: `Task "${task.title}" has been marked as complete.`,
+                  link: `/dashboard/tasks/${task._id}`,
+                  read: false,
+                  createdAt: new Date()
+                });
+                
+                await notification.save();
+              }
             }
           } catch (notifyError) {
             console.error('Error sending task completion notifications:', notifyError);
@@ -218,19 +248,49 @@ export async function PUT(
                 await notification.save();
               }
               
-              // Notify the task creator
+              // Check if this is a super admin-only task
+              const checkAssignees = async () => {
+                if (Array.isArray(task.assignedTo)) {
+                  // Check if every assignee is a super admin
+                  for (const assigneeId of task.assignedTo) {
+                    const assignee = await User.findById(assigneeId);
+                    if (!assignee || assignee.role !== 'SUPER_ADMIN') {
+                      return false; // Found a non-super-admin
+                    }
+                  }
+                  return true; // All are super admins
+                } else {
+                  // Single assignee
+                  const assignee = await User.findById(task.assignedTo);
+                  return assignee && assignee.role === 'SUPER_ADMIN';
+                }
+              };
+              
+              // Check if assigner is a super admin
+              const assigner = await User.findById(task.assignedBy);
+              const isAssignedBySuperAdmin = assigner && assigner.role === 'SUPER_ADMIN';
+              
+              // Only notify the task creator if allowed
               if (task.assignedBy.toString() !== user.userId) {
-                const notification = new Notification({
-                  userId: task.assignedBy.toString(),
-                  type: 'status',
-                  title: 'Task Status Updated',
-                  message: `Task "${task.title}" changed from ${previousStatus} to ${status}.`,
-                  link: `/dashboard/tasks/${task._id}`,
-                  read: false,
-                  createdAt: new Date()
-                });
+                const isAssignedToSuperAdminsOnly = await checkAssignees();
+                const isSuperAdminOnlyTask = isAssignedToSuperAdminsOnly && isAssignedBySuperAdmin;
                 
-                await notification.save();
+                const taskCreator = await User.findById(task.assignedBy);
+                
+                // Skip notification if this is a super admin-only task and the creator is not a super admin
+                if (!isSuperAdminOnlyTask || (taskCreator && taskCreator.role === 'SUPER_ADMIN')) {
+                  const notification = new Notification({
+                    userId: task.assignedBy.toString(),
+                    type: 'status',
+                    title: 'Task Status Updated',
+                    message: `Task "${task.title}" changed from ${previousStatus} to ${status}.`,
+                    link: `/dashboard/tasks/${task._id}`,
+                    read: false,
+                    createdAt: new Date()
+                  });
+                  
+                  await notification.save();
+                }
               }
             } catch (notifyError) {
               console.error('Error sending status change notifications:', notifyError);
@@ -353,10 +413,10 @@ export async function PUT(
 // DELETE /api/tasks/[id] - Delete a task
 export async function DELETE(
   request: NextRequest,
-  { params }: any
+  { params }: { params: { id: string } }
 ) {
-  // Get the task ID from params
-  const taskId = params.id;
+  // Extract the task ID from params
+  const { id: taskId } = params;
   
   return withAuth(request, async (user) => {
     // Only allow managers and admins to delete tasks

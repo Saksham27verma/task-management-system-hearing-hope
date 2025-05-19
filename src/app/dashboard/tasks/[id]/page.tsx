@@ -51,6 +51,7 @@ import {
   SwapVert as SwapVertIcon,
   ExpandMore as ExpandMoreIcon,
   AddCircleOutline as AddCircleOutlineIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -135,6 +136,17 @@ export default function TaskDetailPage({ params }: any) {
 
         if (response.ok && data.success) {
           setTask(data.task);
+          
+          // Check if manager is trying to access a super admin-only task
+          if (user?.role === 'MANAGER' && 
+              data.task.assignedBy?.role === 'SUPER_ADMIN' && 
+              (Array.isArray(data.task.assignedTo) 
+                ? data.task.assignedTo.every(u => u?.role === 'SUPER_ADMIN')
+                : data.task.assignedTo?.role === 'SUPER_ADMIN')) {
+            // Redirect to tasks page with an error message
+            router.push('/dashboard/tasks?error=unauthorized');
+            return;
+          }
         } else {
           setError(data.message || 'Failed to fetch task details');
         }
@@ -149,7 +161,7 @@ export default function TaskDetailPage({ params }: any) {
     if (params.id) {
       fetchTaskDetails();
     }
-  }, [params.id]);
+  }, [params.id, user, router]);
 
   // Handle updating task status
   const handleUpdateStatus = async () => {
@@ -343,7 +355,9 @@ export default function TaskDetailPage({ params }: any) {
     if (task.status === 'COMPLETED') return false;
     
     // User is assigned to the task
-    const isAssigned = task.assignedTo?._id === user.id;
+    const isAssigned = Array.isArray(task.assignedTo)
+      ? task.assignedTo.some(assignee => assignee?._id === user.id)
+      : task.assignedTo?._id === user.id;
     
     // User is the one who assigned the task
     const isAssigner = task.assignedBy?._id === user.id;
@@ -364,10 +378,26 @@ export default function TaskDetailPage({ params }: any) {
     // User is the one who assigned the task
     const isAssigner = task.assignedBy?._id === user.id;
     
-    // User is admin or manager
-    const isAdminOrManager = user.role === 'SUPER_ADMIN' || user.role === 'MANAGER';
+    // User is admin
+    const isAdmin = user.role === 'SUPER_ADMIN';
     
-    return isAssigner || isAdminOrManager;
+    // User is manager and assigned the task
+    const isManager = user.role === 'MANAGER' && isAssigner;
+    
+    return isAdmin || isManager;
+  };
+
+  // Check if user can delete task
+  const canDeleteTask = () => {
+    if (!user || !task) return false;
+    
+    // User is admin
+    const isAdmin = user.role === 'SUPER_ADMIN';
+    
+    // User is manager and assigned the task
+    const isManager = user.role === 'MANAGER' && task.assignedBy?._id === user.id;
+    
+    return isAdmin || isManager;
   };
 
   // Get available days for updating progress based on task type and dateRange
@@ -489,7 +519,7 @@ export default function TaskDetailPage({ params }: any) {
     
     return task.progressUpdates.find(update => 
       isSameDay(new Date(update.date), day)
-    );
+    ) || null;
   };
   
   // Handle adding progress update for a specific day
@@ -749,6 +779,7 @@ export default function TaskDetailPage({ params }: any) {
     const dayNumber = day.getDate();
     const isToday = isSameDay(day, new Date());
     const hasUpdate = hasDayProgressUpdate(day);
+    const update = getDayProgressUpdate(day);
     
     // Only show update button for today and if allowed
     const shouldShowUpdateButton = isToday && canAddProgressToday();
@@ -782,13 +813,13 @@ export default function TaskDetailPage({ params }: any) {
         </Box>
         
         <Box sx={{ p: 1, flexGrow: 1 }}>
-          {hasUpdate ? (
+          {hasUpdate && update ? (
             <Box>
               <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                 Updated
               </Typography>
               <Typography variant="body2" noWrap>
-                {getDayProgressUpdate(day).progress}
+                {update.progress}
               </Typography>
             </Box>
           ) : (
@@ -878,6 +909,61 @@ export default function TaskDetailPage({ params }: any) {
       setSnackbar({
         open: true,
         message: 'An error occurred while adding progress update',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check if user can send reminders
+  const canSendReminder = () => {
+    if (!user || !task) return false;
+    
+    // User is the one who assigned the task
+    const isAssigner = task.assignedBy?._id === user.id;
+    
+    // User is admin
+    const isAdmin = user.role === 'SUPER_ADMIN';
+    
+    // User is manager and assigned the task
+    const isManager = user.role === 'MANAGER' && isAssigner;
+    
+    return isAdmin || isManager || isAssigner;
+  };
+
+  // Handle sending reminders
+  const handleSendReminder = async () => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`/api/tasks/${params.id}/remind`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Reminder sent successfully',
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: data.message || 'Failed to send reminder',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      setSnackbar({
+        open: true,
+        message: 'An error occurred while sending reminder',
         severity: 'error'
       });
     } finally {
@@ -1047,7 +1133,7 @@ export default function TaskDetailPage({ params }: any) {
                             ))}
                           </Stack>
                         ) : (
-                          <Typography variant="body2">Unknown</Typography>
+                          <Typography variant="body2">Unassigned</Typography>
                         )
                       ) : (
                         <Typography variant="body2">
@@ -1064,7 +1150,7 @@ export default function TaskDetailPage({ params }: any) {
                         Assigned By
                       </Typography>
                       <Typography variant="body2">
-                        {task.assignedBy?.name || 'Unknown'}
+                        {task.assignedBy?.name || task.createdBy?.name || 'System'}
                       </Typography>
                     </Box>
                   </Box>
@@ -1132,6 +1218,19 @@ export default function TaskDetailPage({ params }: any) {
                 onClick={() => setCompleteDialogOpen(true)}
               >
                 Mark as Complete
+              </Button>
+            )}
+            
+            {/* Send Reminder Button */}
+            {canSendReminder() && (
+              <Button
+                variant="outlined"
+                color="secondary"
+                startIcon={<NotificationsIcon />}
+                onClick={handleSendReminder}
+                disabled={loading}
+              >
+                Send Reminder
               </Button>
             )}
           </Stack>

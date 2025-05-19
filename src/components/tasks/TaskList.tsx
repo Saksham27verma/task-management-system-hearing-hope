@@ -38,6 +38,7 @@ import {
   ListItemText,
   Grid as MuiGrid,
   useMediaQuery,
+  Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -58,6 +59,7 @@ import {
   PriorityHigh as PriorityHighIcon,
   Category as CategoryIcon,
   Refresh as RefreshIcon,
+  Notifications as NotificationsIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
@@ -130,6 +132,17 @@ export default function TaskList() {
   // Derived state for batch operations
   const isBatchMenuOpen = Boolean(batchMenuAnchor);
   const hasSelectedTasks = selectedTasks.length > 0;
+  
+  // Define snackbar state if it doesn't exist
+  const [snackbar, setSnackbar] = useState<{
+    open: boolean,
+    message: string,
+    severity: 'success' | 'error' | 'warning' | 'info'
+  }>({
+    open: false,
+    message: '',
+    severity: 'info'
+  });
   
   // Fetch tasks on component mount and when filters change
   useEffect(() => {
@@ -371,8 +384,55 @@ export default function TaskList() {
     }
   };
   
+  // Handle sending reminder
+  const handleSendReminder = async (taskId: string, event?: React.MouseEvent) => {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/remind`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setSnackbar({
+          open: true,
+          message: `Reminder sent to ${data.sentCount} assignee(s)`,
+          severity: 'success'
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: data.message || 'Failed to send reminder',
+          severity: 'error'
+        });
+      }
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      setSnackbar({
+        open: true,
+        message: 'An error occurred while sending the reminder',
+        severity: 'error'
+      });
+    }
+  };
+  
   // Batch operations handlers
   const openBatchMenu = (event: React.MouseEvent<HTMLElement>) => {
+    if (selectedTasks.length === 0) {
+      setSnackbar({
+        open: true,
+        message: 'No tasks selected. Please select at least one task.',
+        severity: 'warning'
+      });
+      return;
+    }
     setBatchMenuAnchor(event.currentTarget);
   };
 
@@ -494,6 +554,14 @@ export default function TaskList() {
     } finally {
       setBatchActionLoading(false);
     }
+  };
+  
+  // Handle snackbar close
+  const handleSnackbarClose = () => {
+    setSnackbar(prev => ({
+      ...prev,
+      open: false
+    }));
   };
   
   return (
@@ -651,14 +719,17 @@ export default function TaskList() {
               justifyContent: { xs: 'flex-start', md: 'flex-end' },
               alignItems: 'center'
             }}>
-              <Button 
-                startIcon={<AddIcon />} 
-                variant="contained" 
-                color="primary"
-                onClick={handleCreateTask}
-              >
-                New Task
-              </Button>
+              {/* Only show New Task button for managers and super admins */}
+              {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
+                <Button 
+                  startIcon={<AddIcon />} 
+                  variant="contained" 
+                  color="primary"
+                  onClick={handleCreateTask}
+                >
+                  New Task
+                </Button>
+              )}
               <Tooltip title="Batch Operations">
                 <IconButton 
                   color={batchMenuAnchor ? "primary" : "default"} 
@@ -741,7 +812,7 @@ export default function TaskList() {
                             {Array.isArray(task.assignedTo) 
                               ? (task.assignedTo.length > 0 
                                 ? (task.assignedTo[0]?.name || 'Unknown') + (task.assignedTo.length > 1 ? ` +${task.assignedTo.length - 1}` : '')
-                                : 'Unknown')
+                                : 'Unassigned')
                               : (task.assignedTo?.name || 'Unknown')}
                           </Typography>
                         </Box>
@@ -750,7 +821,7 @@ export default function TaskList() {
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           <PersonIcon fontSize="small" sx={{ mr: 1, color: 'grey.500' }} />
                           <Typography variant="body2">
-                            {task.createdBy?.name || task.assignedBy?.name || 'System'}
+                            {task.assignedBy?.name || task.createdBy?.name || 'System'}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -832,7 +903,20 @@ export default function TaskList() {
                               <UpdateIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          {user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER') && (
+                          {/* Reminder button - only for task creator */}
+                          {user && (task.assignedBy && task.assignedBy._id === user.id || user.role === 'SUPER_ADMIN') && task.status !== 'COMPLETED' && (
+                            <Tooltip title="Send Reminder">
+                              <IconButton
+                                size="small"
+                                color="secondary"
+                                onClick={(e) => handleSendReminder(task._id, e)}
+                                sx={{ p: 0.75 }}
+                              >
+                                <NotificationsIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          {user && (user.role === 'SUPER_ADMIN' || (user.role === 'MANAGER' && task.assignedBy && task.assignedBy._id === user.id)) && (
                             <>
                               <Tooltip title="Edit Task">
                                 <IconButton
@@ -840,6 +924,7 @@ export default function TaskList() {
                                   color="info"
                                   onClick={(e) => handleEditTask(task._id, e)}
                                   sx={{ p: 0.75 }}
+                                  disabled={task.status === 'COMPLETED'}
                                 >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
@@ -1007,6 +1092,23 @@ export default function TaskList() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar?.open}
+        autoHideDuration={6000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          elevation={6}
+          variant="filled"
+          onClose={handleSnackbarClose}
+          severity={snackbar?.severity || 'info'}
+        >
+          {snackbar?.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 } 

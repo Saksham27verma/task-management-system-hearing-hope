@@ -19,8 +19,13 @@ export async function GET(request: NextRequest) {
     const taskType = url.searchParams.get('taskType');
     const searchQuery = url.searchParams.get('search');
     const assignment = url.searchParams.get('assignment');
+    const filterSuperAdminTasks = url.searchParams.get('filterSuperAdminTasks') === 'true';
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
+    
+    console.log("Tasks API - User role:", user.role);
+    console.log("Tasks API - Assignment filter:", assignment);
+    console.log("Tasks API - Filter super admin tasks:", filterSuperAdminTasks);
     
     // Connect to database
     await connectToDatabase();
@@ -28,11 +33,38 @@ export async function GET(request: NextRequest) {
     // Build query
     const query: any = {};
     
+    // Find super admin users for potential filtering
+    let superAdminIds: string[] = [];
+    if (user.role === 'MANAGER' || filterSuperAdminTasks) {
+      const superAdminUsers = await User.find({ role: 'SUPER_ADMIN' }).select('_id').lean();
+      superAdminIds = superAdminUsers.map(admin => admin._id.toString());
+    }
+    
     // Handle assignment filter (this takes precedence over role-based filters)
     if (assignment) {
       if (assignment === 'assignedToMe') {
         // Show only tasks assigned to the current user
         query.assignedTo = user.userId;
+        
+        // For managers, we also need to ensure we don't show tasks where both:
+        // 1. The assignedBy is a super admin, AND
+        // 2. All assignedTo are super admins (except for the current manager)
+        if (user.role === 'MANAGER' && superAdminIds.length > 0) {
+          // Add a filter to exclude tasks where the assigner is a super admin AND all other
+          // assignees (besides this manager) are also super admins
+          if (!query.$and) query.$and = [];
+          
+          query.$and.push({
+            $or: [
+              // Either the assignedBy is NOT a super admin
+              { assignedBy: { $nin: superAdminIds } },
+              // OR at least one other non-manager assignee exists 
+              // We don't need to check $elemMatch here since we're already filtering 
+              // for tasks where the current user is an assignee
+              { assignedTo: { $nin: superAdminIds } }
+            ]
+          });
+        }
       } else if (assignment === 'assignedByMe') {
         // Show only tasks assigned by the current user
         query.assignedBy = user.userId;
@@ -42,12 +74,38 @@ export async function GET(request: NextRequest) {
       if (user.role === 'EMPLOYEE') {
         // Employees can only see their own tasks
         query.assignedTo = user.userId;
-      } else if (user.role === 'MANAGER') {
+      } else if (user.role === 'MANAGER' || filterSuperAdminTasks) {
         // Managers can see tasks they assigned or tasks assigned to them
-        query.$or = [
-          { assignedBy: user.userId },
-          { assignedTo: user.userId }
-        ];
+        // BUT they should not see tasks where both assignedBy and assignedTo are super admins
+        
+        // If this is a manager or the filter is explicitly requested
+        if (user.role === 'MANAGER') {
+          query.$or = [
+            { assignedBy: user.userId },
+            { assignedTo: user.userId }
+          ];
+        }
+        
+        // Add exclusion for tasks where both assignedBy and assignedTo are super admins
+        if (superAdminIds.length > 0) {
+          // We need to ensure that we don't show tasks where:
+          // 1. The assignedBy is a super admin AND
+          // 2. All assignedTo are also super admins (except for the current manager if they're assigned)
+          
+          // First, add the exclusion to the query
+          if (!query.$and) query.$and = [];
+          
+          // For tasks assigned to the current manager, we need a more nuanced filter
+          // to handle the case where the manager is the only non-super-admin assignee
+          query.$and.push({
+            $or: [
+              // Either the assignedBy is NOT a super admin
+              { assignedBy: { $nin: superAdminIds } },
+              // OR at least one assignedTo is NOT a super admin
+              { assignedTo: { $nin: superAdminIds } }
+            ]
+          });
+        }
       }
       // Super admins can see all tasks, so no filter needed
     }
@@ -73,9 +131,13 @@ export async function GET(request: NextRequest) {
     // Calculate pagination
     const skip = (page - 1) * limit;
     
+    // Final check with special logging for debugging
+    console.log("Tasks API - Final query:", JSON.stringify(query, null, 2));
+    
     try {
       // Get total count for pagination
       const total = await Task.countDocuments(query);
+      console.log("Tasks API - Total tasks found:", total);
       
       // Get tasks with pagination
       const tasks = await Task.find(query)
@@ -84,6 +146,13 @@ export async function GET(request: NextRequest) {
         .sort({ dueDate: 1 })
         .skip(skip)
         .limit(limit);
+      
+      if (tasks.length === 0) {
+        console.log("Tasks API - WARNING: No tasks found with query:", JSON.stringify(query, null, 2));
+      } else {
+        console.log("Tasks API - Found tasks:", tasks.length);
+        console.log("Tasks API - Sample task:", JSON.stringify(tasks[0], null, 2));
+      }
       
       return NextResponse.json({
         success: true,
