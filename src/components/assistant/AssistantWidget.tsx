@@ -485,7 +485,7 @@ const AssistantWidget = () => {
   };
 
   // Determine drawer width based on screen size
-  const drawerWidth = isMobile ? '100%' : '45%';
+  const drawerWidth = isMobile ? '100%' : '450px';
   
   // Dynamic colors based on theme
   const isDark = theme.palette.mode === 'dark';
@@ -612,9 +612,9 @@ const AssistantWidget = () => {
         PaperProps={{
           sx: {
             width: drawerWidth,
-            maxWidth: 500,
-            borderTopLeftRadius: 8,
-            borderBottomLeftRadius: 8,
+            maxWidth: isMobile ? '100%' : 500,
+            borderTopLeftRadius: isMobile ? 0 : 8,
+            borderBottomLeftRadius: isMobile ? 0 : 8,
             outline: 'none',
             height: '100%',
             display: 'flex',
@@ -788,6 +788,9 @@ const AssistantWidget = () => {
               flexWrap: 'wrap',
               gap: 1,
               mb: 2,
+              justifyContent: isMobile ? 'center' : 'flex-start',
+              maxHeight: isMobile ? '120px' : 'auto',
+              overflowY: isMobile ? 'auto' : 'visible',
             }}>
               <Button
                 variant="outlined"
