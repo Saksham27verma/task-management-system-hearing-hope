@@ -82,7 +82,7 @@ const MessageBubble = ({ message, isUser, accentColor = '#EE6417', isNewMessage 
         alignItems: 'flex-start',
         mb: 2.5,
         maxWidth: '100%',
-        px: { xs: 0.5, sm: 1 },
+        px: { xs: 0, sm: 1 },
       }}
     >
       {/* Different styling for user vs assistant messages */}
@@ -93,7 +93,7 @@ const MessageBubble = ({ message, isUser, accentColor = '#EE6417', isNewMessage 
             color: userTextColor,
             p: 2,
             borderRadius: '14px',
-            maxWidth: { xs: '90%', sm: '80%' },
+            maxWidth: { xs: '95%', sm: '80%' },
             boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
@@ -118,7 +118,7 @@ const MessageBubble = ({ message, isUser, accentColor = '#EE6417', isNewMessage 
           sx={{
             p: '8px 12px',
             color: assistantTextColor,
-            maxWidth: { xs: '95%', sm: '85%' },
+            maxWidth: { xs: '100%', sm: '85%' },
             wordBreak: 'break-word',
             overflowWrap: 'break-word',
           }}

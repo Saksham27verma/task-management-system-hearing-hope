@@ -484,8 +484,8 @@ const AssistantWidget = () => {
     }
   };
 
-  // Determine drawer width based on screen size
-  const drawerWidth = isMobile ? '100%' : '450px';
+  // Determine drawer width based on screen size for drawer wrapper
+  const drawerWidth = '100%';
   
   // Dynamic colors based on theme
   const isDark = theme.palette.mode === 'dark';
@@ -611,20 +611,29 @@ const AssistantWidget = () => {
         onClose={() => handleToggleWidget(false)}
         PaperProps={{
           sx: {
-            width: drawerWidth,
-            maxWidth: isMobile ? '100%' : 500,
+            width: isMobile ? '100%' : '450px',
+            maxWidth: isMobile ? '100vw' : '500px',
             borderTopLeftRadius: isMobile ? 0 : 8,
             borderBottomLeftRadius: isMobile ? 0 : 8,
+            borderRadius: isMobile ? 0 : undefined,
             outline: 'none',
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
+            margin: isMobile ? 0 : undefined,
           },
         }}
         sx={{
           zIndex: theme.zIndex.drawer + 1,
           '& .MuiBackdrop-root': {
             backgroundColor: alpha('#000', 0.4),
+          },
+          '& .MuiDrawer-paper': {
+            width: isMobile ? '100%' : undefined,
+            boxSizing: 'border-box',
+            border: isMobile ? 'none' : undefined,
+            right: 0,
+            left: 'auto',
           },
         }}
       >
