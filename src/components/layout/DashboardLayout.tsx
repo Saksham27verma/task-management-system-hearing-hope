@@ -47,15 +47,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import dynamic from 'next/dynamic';
 import Permission from '@/components/common/Permission';
 import NotificationBell from '@/components/notifications/NotificationBell';
-
-// Dynamically import components to prevent SSR issues
-const WalkthroughTour = dynamic(
-  () => import('@/components/onboarding/WalkthroughTour'),
-  { ssr: false }
-);
+import AssistantWidget from '@/components/assistant/AssistantWidget';
 
 // Responsive drawer width
 const getDrawerWidth = (isMobile: boolean, isSmallMobile: boolean) => {
@@ -889,13 +883,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             maxWidth: '100%',
           }}
         >
-          {/* Walkthrough tour for new users */}
-          {isAuthenticated && <WalkthroughTour />}
-          
           {/* Main page content */}
           {children}
         </Box>
       </Box>
+      
+      {/* AI Assistant - Only for authenticated SUPER_ADMIN and MANAGER users */}
+      {isAuthenticated && (user?.role === 'SUPER_ADMIN' || user?.role === 'MANAGER') && (
+        <AssistantWidget />
+      )}
     </Box>
   );
 }

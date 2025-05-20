@@ -1,0 +1,18 @@
+/* Mobile drawer fullscreen fix */
+@media (max-width: 600px) {
+  .MuiDrawer-paper {
+    width: 100% !important;
+    max-width: 100% !important;
+    right: 0 !important;
+    left: auto !important;
+  }
+  
+  .MuiModal-root {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .MuiBackdrop-root {
+    width: 100% !important;
+  }
+} 

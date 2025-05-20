@@ -12,7 +12,6 @@ import { ConfettiProvider } from '@/contexts/ConfettiContext';
 import { TaskProvider } from '@/contexts/TaskContext';
 import { UserProvider } from '@/contexts/UserContext';
 import { AssistantProvider } from '@/contexts/AssistantContext';
-import AssistantWidget from '@/components/assistant/AssistantWidget';
 import { getTheme } from '@/lib/theme';
 import { DashboardLoadingProvider } from './dashboard-loading';
 
@@ -42,7 +41,6 @@ export default function Providers({ children }: { children: ReactNode }) {
                     <DashboardLoadingProvider>
                       <AssistantProvider>
                         {children}
-                        <AssistantWidget />
                       </AssistantProvider>
                     </DashboardLoadingProvider>
                   </ConfettiProvider>

@@ -43,6 +43,7 @@ import TaskDetailsDialog from './TaskDetailsDialog';
 import { useAssistant } from '@/contexts/AssistantContext';
 import { useTasks } from '@/contexts/TaskContext';
 import { useUsers } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { User, UserRole } from '@/types/User';
 import { Task } from '@/types/Task';
 
@@ -68,6 +69,10 @@ const AssistantWidget = () => {
   const { tasks } = useTasks();
   const usersContext = useUsers();
   const { users } = usersContext;
+  const { user, isAuthenticated } = useAuth();
+  
+  // Check if user has permission to use the assistant
+  const canUseAssistant = isAuthenticated && user && (user.role === 'SUPER_ADMIN' || user.role === 'MANAGER');
   
   // Task selection dialog state
   const [taskSelectionOpen, setTaskSelectionOpen] = useState(false);
@@ -561,7 +566,7 @@ const AssistantWidget = () => {
     }
   };
 
-  // Check for special commands in assistant responses
+  // Effect to check for special commands in assistant responses
   useEffect(() => {
     // Look for the most recent assistant message
     const lastAssistantMessage = [...messages].reverse().find(msg => msg.role === 'assistant');
@@ -577,6 +582,37 @@ const AssistantWidget = () => {
       }
     }
   }, [messages]);
+
+  // Use effect to force width on mobile
+  useEffect(() => {
+    if (open && isMobile) {
+      // Force the drawer to take full width on mobile
+      const drawerElement = document.querySelector('.MuiDrawer-paper');
+      const modalElement = document.querySelector('.MuiModal-root');
+      const backdropElement = document.querySelector('.MuiBackdrop-root');
+      
+      if (drawerElement) {
+        (drawerElement as HTMLElement).style.width = '100%';
+        (drawerElement as HTMLElement).style.maxWidth = '100%';
+        (drawerElement as HTMLElement).style.right = '0';
+        (drawerElement as HTMLElement).style.left = 'auto';
+      }
+      
+      if (modalElement) {
+        (modalElement as HTMLElement).style.width = '100%';
+        (modalElement as HTMLElement).style.maxWidth = '100%';
+      }
+      
+      if (backdropElement) {
+        (backdropElement as HTMLElement).style.width = '100%';
+      }
+    }
+  }, [open, isMobile]);
+
+  // If user doesn't have permission, don't render anything
+  if (!canUseAssistant) {
+    return null;
+  }
 
   return (
     <>
@@ -609,10 +645,17 @@ const AssistantWidget = () => {
         anchor="right"
         variant="temporary"
         onClose={() => handleToggleWidget(false)}
+        ModalProps={{
+          style: { 
+            width: isMobile ? '100% !important' : 'auto', 
+            right: 0,
+            left: 'auto'
+          },
+        }}
         PaperProps={{
           sx: {
-            width: isMobile ? '100%' : '450px',
-            maxWidth: isMobile ? '100vw' : '500px',
+            width: isMobile ? '100% !important' : '450px',
+            maxWidth: isMobile ? '100% !important' : '500px',
             borderTopLeftRadius: isMobile ? 0 : 8,
             borderBottomLeftRadius: isMobile ? 0 : 8,
             borderRadius: isMobile ? 0 : undefined,
@@ -620,11 +663,15 @@ const AssistantWidget = () => {
             height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            margin: isMobile ? 0 : undefined,
+            margin: 0,
+            position: 'fixed',
+            top: 0,
+            bottom: 0,
           },
         }}
         sx={{
           zIndex: theme.zIndex.drawer + 1,
+          width: isMobile ? '100%' : undefined,
           '& .MuiBackdrop-root': {
             backgroundColor: alpha('#000', 0.4),
           },
@@ -635,12 +682,17 @@ const AssistantWidget = () => {
             right: 0,
             left: 'auto',
           },
+          '& .MuiModal-backdrop': {
+            width: '100%',
+          },
         }}
       >
         {/* Header */}
         <Box
           sx={{
             p: 2,
+            width: '100%',
+            boxSizing: 'border-box',
             bgcolor: headerBg,
             color: 'white',
             display: 'flex',
@@ -694,13 +746,16 @@ const AssistantWidget = () => {
             flexDirection: 'column',
             overflow: 'hidden',
             height: '100%',
+            width: '100%',
           }}
         >
           <Box
             sx={{
               flexGrow: 1,
               overflowY: 'auto',
-              p: 3,
+              p: isMobile ? 1.5 : 3,
+              width: '100%',
+              boxSizing: 'border-box',
               bgcolor: messagesBg,
               '&::-webkit-scrollbar': {
                 width: '6px',
@@ -784,7 +839,9 @@ const AssistantWidget = () => {
           {/* Input area */}
           <Box 
             sx={{ 
-              p: 2,
+              p: isMobile ? 1.5 : 2,
+              width: '100%',
+              boxSizing: 'border-box',
               bgcolor: inputBg,
               borderTop: isDark ? '1px solid #333' : '1px solid #E5E5E5',
               flexShrink: 0,
@@ -793,117 +850,146 @@ const AssistantWidget = () => {
           >
             {/* Quick action buttons */}
             <Box sx={{ 
-              display: 'flex', 
-              flexWrap: 'wrap',
-              gap: 1,
-              mb: 2,
-              justifyContent: isMobile ? 'center' : 'flex-start',
-              maxHeight: isMobile ? '120px' : 'auto',
-              overflowY: isMobile ? 'auto' : 'visible',
+              display: 'grid',
+              gridTemplateColumns: isMobile ? 'repeat(3, 1fr)' : 'repeat(auto-fit, minmax(120px, max-content))',
+              gap: isMobile ? 0.5 : 1,
+              mb: isMobile ? 1 : 2,
+              justifyContent: isMobile ? 'stretch' : 'flex-start',
+              width: '100%',
+              px: isMobile ? 0.5 : 0,
             }}>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<AddTaskIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<AddTaskIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={handleOpenCreateTask}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Create Task
+                {isMobile ? 'Create' : 'Create Task'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<NotificationsActiveIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<NotificationsActiveIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={handleOpenCreateNotice}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Post Notice
+                {isMobile ? 'Notice' : 'Post Notice'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<AlarmIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<AlarmIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={() => setUserDialogOpen(true)}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Send Reminder
+                {isMobile ? 'Remind' : 'Send Reminder'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<EmailIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<EmailIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={() => handleOpenSendMessage()}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Send Message
+                {isMobile ? 'Message' : 'Send Message'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<FormatListBulletedIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<FormatListBulletedIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={handleOpenTaskManagement}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                My Tasks
+                {isMobile ? 'Tasks' : 'My Tasks'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<AssessmentIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<AssessmentIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={handleCheckTaskProgress}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Progress Report
+                {isMobile ? 'Progress' : 'Progress Report'}
               </Button>
               <Button
                 variant="outlined"
-                size="small"
-                startIcon={<InfoIcon />}
+                size={isMobile ? "small" : "small"}
+                startIcon={<InfoIcon sx={{ fontSize: isMobile ? '0.8rem' : '1rem' }} />}
                 onClick={handleInitiateTaskDetailsFlow}
                 sx={{ 
                   borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)', 
                   color: accentColor,
                   '&:hover': { borderColor: accentColor },
-                  fontSize: '0.75rem',
+                  fontSize: isMobile ? '0.65rem' : '0.75rem',
+                  py: isMobile ? 0.4 : 1,
+                  px: isMobile ? 0.8 : 2,
+                  minWidth: isMobile ? 0 : 'auto',
+                  margin: isMobile ? '2px' : 0,
                 }}
               >
-                Task Details
+                {isMobile ? 'Details' : 'Task Details'}
               </Button>
             </Box>
 
             <Box sx={{ 
               display: 'flex', 
               gap: 1,
+              width: '100%',
               backgroundColor: isDark ? '#2A2A2A' : '#F2F2F2',
               borderRadius: 2,
               padding: '4px 16px 4px 16px',
