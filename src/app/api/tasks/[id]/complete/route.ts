@@ -70,8 +70,16 @@ export async function POST(
   
   return withAuth(request, async (user) => {
     try {
-      // Optional remarks for task completion
+      // Get remarks from request body (now required)
       const { remarks } = await request.json().catch(() => ({}));
+      
+      // Validate that remarks are provided
+      if (!remarks || remarks.trim() === '') {
+        return NextResponse.json(
+          { success: false, message: 'Completion remarks are required' },
+          { status: 400 }
+        );
+      }
       
       await connectToDatabase();
       

@@ -22,6 +22,8 @@ export type PartialNotification = {
   link?: string;
   read?: boolean;
   createdAt?: Date;
+  userId?: string;
+  relatedId?: string;
 };
 
 interface NotificationContextType {

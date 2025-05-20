@@ -124,6 +124,11 @@ export default function TaskDetailPage({ params }: any) {
     severity: 'info'
   });
 
+  // State for task completion revocation (for super admins)
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [revokeReason, setRevokeReason] = useState('');
+  const [revokingCompletion, setRevokingCompletion] = useState(false);
+
   const { notifyNewTask } = useNotificationManager();
 
   // Fetch task details
@@ -971,6 +976,71 @@ export default function TaskDetailPage({ params }: any) {
     }
   };
 
+  // Handle revoking task completion (super admin only)
+  const handleRevokeCompletion = async () => {
+    if (!revokeReason.trim()) return;
+    
+    try {
+      setRevokingCompletion(true);
+      
+      const response = await fetch(`/api/tasks/${params.id}/revoke-completion`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: revokeReason }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Refresh task data
+        const taskResponse = await fetch(`/api/tasks/${params.id}`);
+        const taskData = await taskResponse.json();
+        
+        if (taskResponse.ok && taskData.success) {
+          setTask(taskData.task);
+          setRevokeDialogOpen(false);
+          setRevokeReason('');
+          
+          setSnackbar({
+            open: true,
+            message: 'Task completion has been successfully revoked',
+            severity: 'success'
+          });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: data.message || 'Failed to revoke task completion',
+          severity: 'error'
+        });
+      }
+    } catch (error) {
+      console.error('Error revoking task completion:', error);
+      setSnackbar({
+        open: true,
+        message: 'An error occurred while revoking task completion',
+        severity: 'error'
+      });
+    } finally {
+      setRevokingCompletion(false);
+    }
+  };
+  
+  // Check if user can revoke task completion (super admin only)
+  const canRevokeCompletion = () => {
+    if (!user || !task) return false;
+    
+    // Only super admins can revoke task completion
+    const isSuperAdmin = user.role === 'SUPER_ADMIN';
+    
+    // Task must be completed to revoke completion
+    const isTaskCompleted = task.status === 'COMPLETED';
+    
+    return isSuperAdmin && isTaskCompleted;
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -1236,6 +1306,26 @@ export default function TaskDetailPage({ params }: any) {
           </Stack>
         </Paper>
       )}
+      
+      {/* Super Admin Actions for completed tasks */}
+      {task.status === 'COMPLETED' && canRevokeCompletion() && (
+        <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2, borderLeft: '4px solid', borderColor: 'error.main' }}>
+          <Typography variant="h6" gutterBottom color="error">
+            Admin Actions
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            The following actions are only available to Super Administrators and should be used with caution.
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<WarningIcon />}
+            onClick={() => setRevokeDialogOpen(true)}
+          >
+            Revoke Task Completion
+          </Button>
+        </Paper>
+      )}
 
       {/* Progress updates */}
       <Paper elevation={2} sx={{ p: 3, mb: 3, borderRadius: 2 }}>
@@ -1256,13 +1346,16 @@ export default function TaskDetailPage({ params }: any) {
           </DialogContentText>
           <TextField
             autoFocus
-            label="Completion Remarks (Optional)"
+            label="Completion Remarks (Required)"
             fullWidth
             multiline
             rows={3}
             value={completeRemarks}
             onChange={(e) => setCompleteRemarks(e.target.value)}
             variant="outlined"
+            required
+            error={!completeRemarks.trim()}
+            helperText={!completeRemarks.trim() ? "Please provide completion remarks" : ""}
           />
         </DialogContent>
         <DialogActions>
@@ -1276,7 +1369,7 @@ export default function TaskDetailPage({ params }: any) {
             onClick={handleCompleteTask} 
             color="success" 
             variant="contained"
-            disabled={completingTask}
+            disabled={completingTask || !completeRemarks.trim()}
           >
             {completingTask ? 'Submitting...' : 'Complete Task'}
           </Button>
@@ -1370,6 +1463,58 @@ export default function TaskDetailPage({ params }: any) {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      
+      {/* Revoke Task Completion Dialog (Super Admin Only) */}
+      <Dialog 
+        open={revokeDialogOpen} 
+        onClose={() => setRevokeDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ color: 'error.main' }}>
+          Revoke Task Completion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            <Box component="span" sx={{ fontWeight: 'bold', display: 'block', mb: 1 }}>
+              Warning: This is an administrative action
+            </Box>
+            You are about to revoke the completion status of this task and set it back to "In Progress". 
+            This will notify all assigned users, and they will need to complete the task again.
+          </DialogContentText>
+          
+          <TextField
+            autoFocus
+            label="Reason for Revoking Completion"
+            fullWidth
+            multiline
+            rows={3}
+            value={revokeReason}
+            onChange={(e) => setRevokeReason(e.target.value)}
+            variant="outlined"
+            required
+            error={!revokeReason.trim()}
+            helperText={!revokeReason.trim() ? "Please provide a reason for revoking completion" : "This reason will be visible to all task assignees"}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setRevokeDialogOpen(false)} 
+            disabled={revokingCompletion}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleRevokeCompletion} 
+            color="error" 
+            variant="contained"
+            disabled={revokingCompletion || !revokeReason.trim()}
+          >
+            {revokingCompletion ? 'Processing...' : 'Revoke Completion'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 } 

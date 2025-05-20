@@ -116,7 +116,7 @@ To use the Google Meet integration feature in the meetings module:
 - Create Google Meet meetings that automatically appear in your Google Calendar
 - The Google Calendar API is used to create events with Google Meet conferencing
 - Join and manage meetings directly from the dashboard
-- Uses the same Google authentication as the calendar integration
+- Uses the same Google authentication as the calendar integration 
 
 ## AI Assistant
 
