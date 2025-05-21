@@ -43,5 +43,11 @@
   "env": {
     "NEXT_TELEMETRY_DISABLED": "1",
     "TYPESCRIPT_STRICT": "false"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/tasks/upcoming-reminders?apiKey=${REMINDER_API_KEY}",
+      "schedule": "0 * * * *"
+    }
+  ]
 } 

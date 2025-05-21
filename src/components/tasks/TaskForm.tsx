@@ -26,9 +26,10 @@ import {
 } from '@mui/material';
 import { SelectChangeEvent } from '@mui/material/Select';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { addDays, format, addMonths } from 'date-fns';
+import { addDays, format, addMonths, setHours, setMinutes } from 'date-fns';
 import { TaskStatus, TaskType } from '@/models/Task';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -77,6 +78,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
       : [task.assignedTo]
     : [];
 
+  // Get initial due date and time from task if it exists
+  const initialDueDate = task?.dueDate ? new Date(task.dueDate) : addDays(new Date(), 1);
+  
   // Default formData state
   const [formData, setFormData] = useState<{
     title: string;
@@ -84,6 +88,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     assignedTo: string[];
     taskType: TaskType;
     status: TaskStatus;
+    priority: 'HIGH' | 'MEDIUM' | 'LOW';
     startDate: Date;
     dueDate: Date;
     remarks: string;
@@ -93,8 +98,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
     assignedTo: initialAssignedTo,
     taskType: task?.taskType || 'DAILY',
     status: task?.status || 'PENDING',
+    priority: 'MEDIUM',
     startDate: task?.startDate ? new Date(task.startDate) : new Date(),
-    dueDate: task?.dueDate ? new Date(task.dueDate) : addDays(new Date(), 1), // Default to 1 day from now
+    dueDate: initialDueDate,
     remarks: task?.remarks || '',
   });
 
@@ -294,9 +300,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
   // Handle due date change
   const handleDueDateChange = (date: Date | null) => {
     if (date) {
+      // Preserve the time from the current dueDate when changing the date
+      const hours = formData.dueDate.getHours();
+      const minutes = formData.dueDate.getMinutes();
+      
+      const newDueDate = setMinutes(setHours(date, hours), minutes);
+      
       setFormData({
         ...formData,
-        dueDate: date,
+        dueDate: newDueDate,
       });
       
       // Reset dueDate error if any
@@ -306,6 +318,21 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           dueDate: '',
         });
       }
+    }
+  };
+  
+  // Handle due time change
+  const handleDueTimeChange = (time: Date | null) => {
+    if (time) {
+      // Keep the date from dueDate but use hours and minutes from the new time
+      const newDueDate = new Date(formData.dueDate);
+      newDueDate.setHours(time.getHours());
+      newDueDate.setMinutes(time.getMinutes());
+      
+      setFormData({
+        ...formData,
+        dueDate: newDueDate,
+      });
     }
   };
 
@@ -500,108 +527,160 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
           {/* Task Type */}
           <FormControl fullWidth>
-            <InputLabel id="task-type-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Task Type</InputLabel>
+            <InputLabel id="task-type-label">Task Type</InputLabel>
             <Select
               labelId="task-type-label"
+              id="task-type"
               name="taskType"
               value={formData.taskType}
-              onChange={handleSelectChange}
               label="Task Type"
+              onChange={handleSelectChange}
               sx={{
                 '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: 'rgba(0, 0, 0, 0.23)',
+                  borderColor: alpha(primaryColor, 0.5),
                 },
                 '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
                   borderColor: primaryColor,
                 },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: primaryColor,
+                },
+                '& .MuiSvgIcon-root': {
+                  color: primaryColor,
+                }
               }}
             >
               <MenuItem value="DAILY">Daily Task</MenuItem>
               <MenuItem value="WEEKLY">Weekly Task</MenuItem>
               <MenuItem value="MONTHLY">Monthly Task</MenuItem>
-              <Divider />
-              <MenuItem value="DAILY_RECURRING">Daily Recurring Task</MenuItem>
-              <MenuItem value="WEEKLY_RECURRING">Weekly Recurring Task</MenuItem>
-              <MenuItem value="MONTHLY_RECURRING">Monthly Recurring Task</MenuItem>
+              <MenuItem value="DAILY_RECURRING">Daily Recurring</MenuItem>
+              <MenuItem value="WEEKLY_RECURRING">Weekly Recurring</MenuItem>
+              <MenuItem value="MONTHLY_RECURRING">Monthly Recurring</MenuItem>
             </Select>
-            <FormHelperText>{getTaskTypeDescription()}</FormHelperText>
+            <FormHelperText>
+              {getTaskTypeDescription()}
+            </FormHelperText>
           </FormControl>
 
-          {/* Status - only for editing */}
-          {task && (
-            <FormControl fullWidth>
-              <InputLabel id="status-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Status</InputLabel>
-              <Select
-                labelId="status-label"
-                name="status"
-                value={formData.status}
-                onChange={handleSelectChange}
-                label="Status"
-                sx={{
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: primaryColor,
-                  },
-                }}
-              >
-                <MenuItem value="PENDING">Pending</MenuItem>
-                <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+          {/* Task Status */}
+          <FormControl fullWidth>
+            <InputLabel id="status-label">Status</InputLabel>
+            <Select
+              labelId="status-label"
+              id="status"
+              name="status"
+              value={formData.status}
+              label="Status"
+              onChange={handleSelectChange}
+              sx={{
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: alpha(primaryColor, 0.5),
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: primaryColor,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: primaryColor,
+                },
+                '& .MuiSvgIcon-root': {
+                  color: primaryColor,
+                }
+              }}
+            >
+              <MenuItem value="PENDING">Pending</MenuItem>
+              <MenuItem value="IN_PROGRESS">In Progress</MenuItem>
+              {task && (
                 <MenuItem value="COMPLETED">Completed</MenuItem>
-                <MenuItem value="DELAYED">Delayed</MenuItem>
-              </Select>
-            </FormControl>
-          )}
+              )}
+              <MenuItem value="DELAYED">Delayed</MenuItem>
+            </Select>
+          </FormControl>
         </Stack>
 
-        {/* Assigned To */}
-        <FormControl 
-          fullWidth 
-          margin="normal" 
-          error={!!errors.assignedTo}
-        >
-          <InputLabel id="assignedTo-label" sx={{ '&.Mui-focused': { color: primaryColor } }}>Assigned To</InputLabel>
+        {/* Priority */}
+        <FormControl fullWidth>
+          <InputLabel id="priority-label">Priority</InputLabel>
           <Select
-            labelId="assignedTo-label"
-            id="assignedTo"
+            labelId="priority-label"
+            id="priority"
+            name="priority"
+            value={formData.priority || 'MEDIUM'}
+            label="Priority"
+            onChange={handleSelectChange}
+            sx={{
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: alpha(primaryColor, 0.5),
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: primaryColor,
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: primaryColor,
+              },
+              '& .MuiSvgIcon-root': {
+                color: primaryColor,
+              }
+            }}
+          >
+            <MenuItem value="LOW">Low</MenuItem>
+            <MenuItem value="MEDIUM">Medium</MenuItem>
+            <MenuItem value="HIGH">High</MenuItem>
+          </Select>
+        </FormControl>
+
+        {/* Assigned To */}
+        <FormControl fullWidth error={!!errors.assignedTo}>
+          <InputLabel id="assigned-to-label">Assigned To</InputLabel>
+          <Select
+            labelId="assigned-to-label"
+            id="assigned-to"
             name="assignedTo"
             multiple
             value={formData.assignedTo}
             onChange={handleSelectChange}
             label="Assigned To"
-            disabled={isLoading}
-            sx={{
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(0, 0, 0, 0.23)',
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: primaryColor,
-              },
-            }}
             renderValue={(selected) => (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                 {(selected as string[]).map((value) => {
-                  const employee = employees.find(emp => emp._id === value);
-                  return (
+                  const user = employees.find(emp => emp._id === value);
+                  return user ? (
                     <Chip 
                       key={value} 
-                      label={employee ? employee.name : value} 
+                      label={user.name} 
                       size="small"
-                      sx={{ bgcolor: alpha(primaryColor, 0.1), color: 'text.primary' }}
+                      sx={{ 
+                        bgcolor: alpha(primaryColor, 0.1),
+                        color: primaryColor,
+                        fontWeight: 500
+                      }}
                     />
-                  );
+                  ) : null;
                 })}
               </Box>
             )}
+            sx={{
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: errors.assignedTo ? 'error.main' : alpha(primaryColor, 0.5),
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: errors.assignedTo ? 'error.main' : primaryColor,
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: errors.assignedTo ? 'error.main' : primaryColor,
+              },
+              '& .MuiSvgIcon-root': {
+                color: primaryColor,
+              }
+            }}
+            MenuProps={{
+              PaperProps: {
+                style: {
+                  maxHeight: 224,
+                },
+              },
+            }}
+            disabled={isLoading || employees.length === 0}
           >
-            {/* New Select All option */}
-            <MenuItem 
-              value="select-all"
-              sx={{ fontWeight: 'bold', borderBottom: '1px solid #eee' }}
-            >
-              Select All Users ({employees.length})
-            </MenuItem>
             {employees.map((employee) => (
               <MenuItem key={employee._id} value={employee._id}>
                 {employee.name}
@@ -609,7 +688,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
             ))}
           </Select>
           {errors.assignedTo && (
-            <FormHelperText>{errors.assignedTo}</FormHelperText>
+            <FormHelperText error>{errors.assignedTo}</FormHelperText>
           )}
           {formData.assignedTo.length > 1 && (
             <FormHelperText>
@@ -699,14 +778,43 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onSubmit, onCancel }) => {
           {/* Due Date */}
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
-              label="Due Date (Auto-calculated)"
+              label="Due Date"
               value={formData.dueDate}
               onChange={handleDueDateChange}
               slotProps={{
                 textField: {
                   fullWidth: true,
                   error: !!errors.dueDate,
-                  helperText: errors.dueDate || "Due date is automatically calculated based on task type",
+                  helperText: errors.dueDate || "Set the deadline date for this task",
+                  sx: {
+                    '& .MuiOutlinedInput-root': {
+                      '&.Mui-focused fieldset': {
+                        borderColor: primaryColor,
+                      },
+                    },
+                    '& .MuiInputLabel-root.Mui-focused': {
+                      color: primaryColor,
+                    }
+                  }
+                },
+              }}
+            />
+          </LocalizationProvider>
+        </Stack>
+        
+        {/* Time Row */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          <Box sx={{ width: '50%' }}></Box>
+          {/* Due Time */}
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <TimePicker
+              label="Due Time"
+              value={formData.dueDate}
+              onChange={handleDueTimeChange}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  helperText: "Set the deadline time for this task",
                   sx: {
                     '& .MuiOutlinedInput-root': {
                       '&.Mui-focused fieldset': {

@@ -40,7 +40,7 @@ export const emailTemplates = {
           <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
             <h2 style="margin-top: 0; color: #EE6417;">${taskTitle}</h2>
             <p><strong>Description:</strong> ${taskDescription}</p>
-            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
+            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()} at ${dueDate.toLocaleTimeString()}</p>
             <p><strong>Assigned By:</strong> ${assignerName}</p>
           </div>
           <p>Please log in to the Hearing Hope Task Management System to view the task details and update your progress.</p>
@@ -60,9 +60,9 @@ export const emailTemplates = {
     recipientName: string,
     taskTitle: string,
     dueDate: Date,
-    daysRemaining: number
+    hoursRemaining: number
   ) => ({
-    subject: `Task Reminder: ${taskTitle} due in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}`,
+    subject: `Task Reminder: ${taskTitle} due in ${hoursRemaining} ${hoursRemaining === 1 ? 'hour' : hoursRemaining > 24 ? 'days' : 'hours'}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
         <div style="background-color: #EE6417; padding: 20px; text-align: center; color: white;">
@@ -70,10 +70,10 @@ export const emailTemplates = {
         </div>
         <div style="padding: 20px; border: 1px solid #ddd; border-top: none;">
           <p>Hello ${recipientName},</p>
-          <p>This is a reminder that the following task is due in ${daysRemaining} day${daysRemaining > 1 ? 's' : ''}:</p>
+          <p>This is a reminder that the following task is due in ${hoursRemaining > 24 ? `${Math.floor(hoursRemaining / 24)} day${Math.floor(hoursRemaining / 24) > 1 ? 's' : ''}` : `${hoursRemaining} hour${hoursRemaining > 1 ? 's' : ''}`}:</p>
           <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-left: 4px solid #3aa986;">
             <h2 style="margin-top: 0; color: #EE6417;">${taskTitle}</h2>
-            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()}</p>
+            <p><strong>Due Date:</strong> ${dueDate.toLocaleDateString()} at ${dueDate.toLocaleTimeString()}</p>
           </div>
           <p>Please log in to the Hearing Hope Task Management System to update your progress and complete the task on time.</p>
           <div style="text-align: center; margin-top: 30px;">
