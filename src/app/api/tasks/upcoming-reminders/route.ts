@@ -6,6 +6,23 @@ import { sendEmail, emailTemplates } from '@/lib/email';
 import Notification from '@/models/Notification';
 import { addDays, isAfter, isBefore, parseISO } from 'date-fns';
 
+// Define the type for task results
+interface TaskResult {
+  taskId: string;
+  title: string;
+  dueDate: string;
+  hoursRemaining: number;
+  remindersSent: number;
+}
+
+// Define the type for reminder results
+interface ReminderResults {
+  total: number;
+  sent: number;
+  errors: number;
+  tasks: TaskResult[];
+}
+
 // Default reminder periods (hours before due date)
 const REMINDER_PERIODS = [24, 6, 1]; // 24 hours, 6 hours, 1 hour before deadline
 
@@ -45,11 +62,11 @@ export async function GET(request: NextRequest) {
     .populate('assignedTo', 'name email')
     .populate('assignedBy', 'name email');
     
-    const reminderResults = {
+    const reminderResults: ReminderResults = {
       total: upcomingTasks.length,
       sent: 0,
       errors: 0,
-      tasks: [] as any[]
+      tasks: []
     };
     
     // Process each upcoming task
@@ -64,7 +81,7 @@ export async function GET(request: NextRequest) {
         }
         
         const assignees = Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo];
-        const taskResult = {
+        const taskResult: TaskResult = {
           taskId: task._id.toString(),
           title: task.title,
           dueDate: dueDate.toISOString(),
