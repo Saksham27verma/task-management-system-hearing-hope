@@ -46,7 +46,7 @@
   },
   "crons": [
     {
-      "path": "/api/tasks/upcoming-reminders?apiKey=${REMINDER_API_KEY}",
+      "path": "/api/tasks/upcoming-reminders?apiKey=YOUR_REMINDER_API_KEY",
       "schedule": "0 * * * *"
     }
   ]
