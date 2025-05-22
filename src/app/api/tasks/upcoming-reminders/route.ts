@@ -11,8 +11,10 @@ const REMINDER_PERIODS = [24, 6, 1]; // 24 hours, 6 hours, 1 hour before deadlin
 
 export async function GET(request: NextRequest) {
   try {
-    // Optional API key validation
-    const apiKey = request.nextUrl.searchParams.get('apiKey');
+    // API key validation - check both header and query parameter
+    const apiKeyHeader = request.headers.get('x-api-key');
+    const apiKeyQuery = request.nextUrl.searchParams.get('apiKey');
+    const apiKey = apiKeyHeader || apiKeyQuery;
     const validApiKey = process.env.REMINDER_API_KEY;
     
     if (validApiKey && apiKey !== validApiKey) {

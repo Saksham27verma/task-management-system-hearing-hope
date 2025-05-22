@@ -47,21 +47,19 @@ The Task Reminder System works as follows:
 
 #### Vercel Cron Jobs:
 
-If your application is hosted on Vercel, you can use Vercel Cron Jobs:
+If your application is hosted on Vercel, set up the cron job through the Vercel dashboard:
 
-1. Update the `vercel.json` file with your actual API key:
-   ```json
-   {
-     "crons": [
-       {
-         "path": "/api/tasks/upcoming-reminders?apiKey=YOUR_REMINDER_API_KEY",
-         "schedule": "0 * * * *"
-       }
-     ]
-   }
-   ```
+1. Go to your project in the Vercel dashboard
+2. Navigate to Settings > Cron Jobs
+3. Click "Add Cron Job"
+4. Set the following values:
+   - Name: Task Reminders
+   - Schedule: `0 * * * *` (runs hourly)
+   - HTTP Method: GET
+   - Path: `/api/tasks/upcoming-reminders`
+   - Secret Header: Add a header with key `x-api-key` and value matching your `REMINDER_API_KEY` environment variable
 
-   **IMPORTANT:** Replace `YOUR_REMINDER_API_KEY` with the actual value from your environment variables before deploying. Vercel does not support environment variable interpolation in the cron paths.
+5. Make sure you've added the `REMINDER_API_KEY` environment variable in Vercel project settings.
 
 #### AWS Lambda with EventBridge:
 
