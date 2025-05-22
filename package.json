@@ -7,6 +7,7 @@
     "build": "next build --no-lint",
     "start": "next start",
     "lint": "next lint",
+    "test": "echo \"No tests specified yet\" && exit 0",
     "seed": "node scripts/seed.js",
     "seed:data": "node src/scripts/seedData.js",
     "prepare-production": "chmod +x scripts/prepare-production.js && node scripts/prepare-production.js",
