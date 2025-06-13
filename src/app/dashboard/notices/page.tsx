@@ -72,7 +72,8 @@ export default function NoticesPage() {
     title: '',
     content: '',
     isImportant: false,
-    expiryDate: null as Date | null
+    expiryDate: null as Date | null,
+    sendNotification: true
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -131,7 +132,7 @@ export default function NoticesPage() {
     const { name, value, checked } = e.target as HTMLInputElement;
     setFormData({
       ...formData,
-      [name]: name === 'isImportant' ? checked : value
+      [name]: name === 'isImportant' || name === 'sendNotification' ? checked : value
     });
   };
 
@@ -159,7 +160,8 @@ export default function NoticesPage() {
       title: '',
       content: '',
       isImportant: false,
-      expiryDate: null
+      expiryDate: null,
+      sendNotification: true
     });
     setCreateDialogOpen(true);
   };
@@ -171,7 +173,8 @@ export default function NoticesPage() {
       title: notice.title,
       content: notice.content,
       isImportant: notice.isImportant,
-      expiryDate: notice.expiryDate ? new Date(notice.expiryDate) : null
+      expiryDate: notice.expiryDate ? new Date(notice.expiryDate) : null,
+      sendNotification: true // Default to true for editing
     });
     setEditDialogOpen(true);
   };
@@ -212,7 +215,8 @@ export default function NoticesPage() {
           title: formData.title,
           content: formData.content,
           isImportant: formData.isImportant,
-          expiryDate: formData.expiryDate
+          expiryDate: formData.expiryDate,
+          sendNotification: formData.sendNotification
         })
       });
       
@@ -583,6 +587,18 @@ export default function NoticesPage() {
               label="Mark as Important"
             />
             
+            <FormControlLabel
+              control={
+                <Switch
+                  name="sendNotification"
+                  checked={formData.sendNotification}
+                  onChange={handleInputChange}
+                  color="primary"
+                />
+              }
+              label="Send Notifications"
+            />
+            
             <DatePicker
               label="Expiry Date (Optional)"
               value={formData.expiryDate}
@@ -641,6 +657,18 @@ export default function NoticesPage() {
                 />
               }
               label="Mark as Important"
+            />
+            
+            <FormControlLabel
+              control={
+                <Switch
+                  name="sendNotification"
+                  checked={formData.sendNotification}
+                  onChange={handleInputChange}
+                  color="primary"
+                />
+              }
+              label="Send Notifications"
             />
             
             <DatePicker

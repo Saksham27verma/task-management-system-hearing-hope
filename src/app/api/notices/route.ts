@@ -4,6 +4,7 @@ import Notice from '@/models/Notice';
 import User from '@/models/User';
 import { withAuth, hasRole } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
+import { notifyNewNotice } from '@/lib/whatsapp';
 import Notification from '@/models/Notification';
 
 // GET /api/notices - Get all notices
@@ -132,7 +133,7 @@ export async function POST(request: NextRequest) {
       if (sendNotification) {
         try {
           // Get all active users
-          const users = await User.find({ isActive: true }, 'name email');
+          const users = await User.find({ isActive: true }, 'name email phone');
           
           if (users.length > 0) {
             // Prepare email recipients
@@ -169,6 +170,68 @@ export async function POST(request: NextRequest) {
               } catch (notifyError) {
                 console.error('Error creating in-app notification:', notifyError);
               }
+            }
+            
+            // Send WhatsApp notifications for important notices or if explicitly requested
+            try {
+              console.log(`[WhatsApp Debug - Notices] Starting WhatsApp notification process`);
+              console.log(`[WhatsApp Debug - Notices] ENABLE_WHATSAPP_NOTIFICATIONS =`, process.env.ENABLE_WHATSAPP_NOTIFICATIONS);
+              console.log(`[WhatsApp Debug - Notices] Title: ${title}`);
+              console.log(`[WhatsApp Debug - Notices] Important: ${isImportant}`);
+              console.log(`[WhatsApp Debug - Notices] SendNotification: ${sendNotification}`);
+              console.log(`[WhatsApp Debug - Notices] Poster: ${posterName}`);
+              console.log(`[WhatsApp Debug - Notices] Users count: ${users.length}`);
+              
+              // Check how many users have phone numbers
+              const usersWithPhone = users.filter(user => user.phone && user.phone.trim() !== '');
+              console.log(`[WhatsApp Debug - Notices] Users with phone numbers: ${usersWithPhone.length}`);
+              
+              if (usersWithPhone.length === 0) {
+                console.log(`[WhatsApp Debug - Notices] ❌ No users have phone numbers! Cannot send WhatsApp notifications`);
+                console.log(`[WhatsApp Debug - Notices] Sample user data:`, users.slice(0, 2).map(u => ({ name: u.name, email: u.email, phone: u.phone })));
+              } else {
+                console.log(`[WhatsApp Debug - Notices] ✅ Found ${usersWithPhone.length} users with phone numbers`);
+                console.log(`[WhatsApp Debug - Notices] Sample users with phones:`, usersWithPhone.slice(0, 2).map(u => ({ name: u.name, phone: u.phone })));
+              }
+              
+              // Send to all users if it's an important notice, or if notifications are requested
+              if (isImportant || sendNotification) {
+                console.log(`[WhatsApp Debug - Notices] Conditions met for WhatsApp notifications - proceeding...`);
+                
+                // Get all user IDs for WhatsApp notifications (only users with phone numbers)
+                const usersWithPhones = users.filter(user => user.phone && user.phone.trim() !== '');
+                const userIds = usersWithPhones.map(user => user._id.toString());
+                console.log(`[WhatsApp Debug - Notices] Sending to ${userIds.length} users with phones:`, userIds);
+                
+                if (userIds.length === 0) {
+                  console.log(`[WhatsApp Debug - Notices] ❌ No users have phone numbers - skipping WhatsApp notifications`);
+                } else {
+                  const result = await notifyNewNotice(
+                    title,
+                    content,
+                    posterName,
+                    isImportant || false,
+                    userIds // Pass only users who have phone numbers
+                  );
+                  
+                  console.log(`[WhatsApp Debug - Notices] notifyNewNotice result:`, result);
+                  
+                  if (result.success) {
+                    console.log(`[WhatsApp] ✅ Notice notifications sent successfully for: ${title}`);
+                  } else {
+                    console.log(`[WhatsApp] ❌ Notice notifications failed for: ${title}`);
+                    if (result.qrCodes && result.qrCodes.length > 0) {
+                      console.log(`[WhatsApp] 📱 Generated ${result.qrCodes.length} QR codes as fallback`);
+                    }
+                  }
+                }
+              } else {
+                console.log(`[WhatsApp Debug - Notices] Conditions not met for WhatsApp notifications - Important: ${isImportant}, SendNotification: ${sendNotification}`);
+              }
+            } catch (whatsappError) {
+              console.error('[WhatsApp Debug - Notices] Error sending WhatsApp notifications:', whatsappError);
+              console.error('[WhatsApp Debug - Notices] Error stack:', whatsappError.stack);
+              // Continue even if WhatsApp notifications fail
             }
           }
         } catch (emailError) {
