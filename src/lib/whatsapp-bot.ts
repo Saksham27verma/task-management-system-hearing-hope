@@ -9,9 +9,9 @@ import { formatPhoneNumber, generateWhatsAppUrlWithMessage } from './whatsapp-ur
 import axios from 'axios';
 
 // Configuration 
-const BOT_PHONE_NUMBER = process.env.WHATSAPP_BOT_NUMBER || ''; // Set this in your .env file
+const BOT_PHONE_NUMBER = process.env.WHATSAPP_BOT_NUMBER || '+91 9311614417';
 const WHATSAPP_ENABLED = process.env.ENABLE_WHATSAPP_NOTIFICATIONS === 'true';
-const WHATSAPP_BOT_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3100';
+const WHATSAPP_BOT_URL = process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com';
 
 /**
  * Get the bot's phone number
@@ -244,7 +244,7 @@ export async function sendTaskAssignmentNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task`, {
-      phone,
+      to: phone,
       taskTitle,
       taskDescription,
       dueDate,
@@ -275,7 +275,7 @@ export async function sendTaskReminderNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-reminder`, {
-      phone,
+      to: phone,
       taskTitle,
       assigneeName,
       timeRemaining
@@ -300,7 +300,7 @@ export async function sendAdminNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-admin`, {
-      phone,
+      to: phone,
       message
     });
     
@@ -329,7 +329,7 @@ export async function sendTaskStatusChangeNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-status`, {
-      phone,
+      to: phone,
       taskTitle,
       previousStatus,
       newStatus,
@@ -361,7 +361,7 @@ export async function sendTaskCompletionNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-completion`, {
-      phone,
+      to: phone,
       taskTitle,
       completedBy,
       completedDate,
@@ -393,7 +393,7 @@ export async function sendTaskRevocationNotification(
 ): Promise<boolean> {
   try {
     const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-revocation`, {
-      phone,
+      to: phone,
       taskTitle,
       revokedBy,
       reason,

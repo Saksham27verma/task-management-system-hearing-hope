@@ -15,7 +15,7 @@ import botUtils from './whatsapp-bot';
 
 // Configuration
 const WHATSAPP_ENABLED = process.env.ENABLE_WHATSAPP_NOTIFICATIONS === 'true';
-const WHATSAPP_SERVICE_URL = process.env.WHATSAPP_BOT_URL || 'http://localhost:3100/api/send';
+const WHATSAPP_SERVICE_URL = process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send';
 const BOT_PHONE_NUMBER = process.env.WHATSAPP_BOT_NUMBER || '';
 const DEFAULT_COUNTRY_CODE = '91'; // India
 
@@ -97,9 +97,9 @@ async function sendTaskNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task') || 
-      'http://localhost:3100/api/notify-task', 
+      'https://hope-whatsapp-bot.onrender.com/api/notify-task', 
       { 
-        phone, 
+        to: phone, 
         taskTitle,
         taskDescription,
         dueDate,
@@ -132,9 +132,9 @@ async function sendReminderNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-reminder') || 
-      'http://localhost:3100/api/notify-reminder',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-reminder',
       { 
-        phone, 
+        to: phone, 
         taskTitle,
         assigneeName,
         timeRemaining
@@ -161,9 +161,9 @@ async function sendAdminNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-admin') || 
-      'http://localhost:3100/api/notify-admin',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-admin',
       { 
-        phone, 
+        to: phone, 
         message
       }
     );
@@ -194,9 +194,9 @@ async function sendTaskStatusNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-status') || 
-      'http://localhost:3100/api/notify-task-status',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-task-status',
       { 
-        phone,
+        to: phone,
         taskTitle,
         previousStatus,
         newStatus,
@@ -230,9 +230,9 @@ async function sendTaskCompletionNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-completion') || 
-      'http://localhost:3100/api/notify-task-completion',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-task-completion',
       { 
-        phone,
+        to: phone,
         taskTitle,
         completedBy,
         completedDate,
@@ -266,9 +266,9 @@ async function sendTaskRevocationNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-revocation') || 
-      'http://localhost:3100/api/notify-task-revocation',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-task-revocation',
       { 
-        phone,
+        to: phone,
         taskTitle,
         revokedBy,
         reason,
@@ -304,9 +304,9 @@ async function sendNoticeNotification(
   try {
     const response = await axios.post(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-notice') || 
-      'http://localhost:3100/api/notify-notice',
+      'https://hope-whatsapp-bot.onrender.com/api/notify-notice',
       { 
-        phone,
+        to: phone,
         title,
         content,
         posterName,
@@ -354,7 +354,7 @@ export async function sendWhatsAppMessage(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -481,7 +481,7 @@ export async function notifyTaskAssignees(
     // Check if bot server is running for direct task notifications
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -577,7 +577,7 @@ export async function notifyTaskStatusChange(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -681,7 +681,7 @@ export async function notifyTaskCompletion(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -786,7 +786,7 @@ export async function notifyTaskRevocation(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -875,7 +875,7 @@ export async function notifyAdminsViaWhatsApp(message: string): Promise<{ succes
     // Check if bot server is running for direct task notifications
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -940,7 +940,7 @@ export async function initializeWhatsApp(): Promise<void> {
   // Check if bot server is available
   const botServerAvailable = await axios.get(
     process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-    'http://localhost:3100/health'
+    'https://hope-whatsapp-bot.onrender.com/health'
   )
     .then(response => response.data.connected === true)
     .catch(() => false);
@@ -996,7 +996,7 @@ export async function notifyNewMessage(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
@@ -1094,7 +1094,7 @@ export async function notifyNewNotice(
     // Check if bot server is running
     const serverCheck = await axios.get(
       process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/health') || 
-      'http://localhost:3100/health'
+      'https://hope-whatsapp-bot.onrender.com/health'
     ).catch(() => null);
     
     const isBotServerRunning = serverCheck?.data?.connected === true;
