@@ -225,6 +225,39 @@ Please check the Task Management System for more details.
 }
 
 /**
+ * Format a notice notification message
+ * @param title Notice title
+ * @param content Notice content
+ * @param posterName Who posted the notice
+ * @param isImportant Whether the notice is important
+ * @param userName User's name
+ * @returns Formatted message
+ */
+export function formatNoticeMessage(
+  title: string,
+  content: string,
+  posterName: string,
+  isImportant: boolean,
+  userName: string
+): string {
+  const urgencyText = isImportant ? '*IMPORTANT NOTICE*' : '*New Notice*';
+  
+  return `
+${urgencyText} - Hearing Hope
+
+Hello ${userName},
+
+${posterName} has posted a new notice:
+
+*${title}*
+
+${content}
+
+Please check the Task Management System for more details.
+`;
+}
+
+/**
  * Send a task assignment notification
  * @param phone Recipient phone number
  * @param taskTitle Task title
@@ -243,13 +276,10 @@ export async function sendTaskAssignmentNotification(
   assignerName: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task`, {
+    const message = formatTaskAssignmentMessage(taskTitle, taskDescription, dueDate, assigneeName, assignerName);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      taskTitle,
-      taskDescription,
-      dueDate,
-      assigneeName,
-      assignerName
+      message
     });
     
     return response.data.success === true;
@@ -274,11 +304,10 @@ export async function sendTaskReminderNotification(
   timeRemaining: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-reminder`, {
+    const message = formatTaskReminderMessage(taskTitle, assigneeName, timeRemaining);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      taskTitle,
-      assigneeName,
-      timeRemaining
+      message
     });
     
     return response.data.success === true;
@@ -299,9 +328,10 @@ export async function sendAdminNotification(
   message: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-admin`, {
+    const formattedMessage = formatAdminNotificationMessage(message);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      message
+      message: formattedMessage
     });
     
     return response.data.success === true;
@@ -328,12 +358,10 @@ export async function sendTaskStatusChangeNotification(
   userName: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-status`, {
+    const message = formatTaskStatusChangeMessage(taskTitle, previousStatus, newStatus, userName);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      taskTitle,
-      previousStatus,
-      newStatus,
-      userName
+      message
     });
     
     return response.data.success === true;
@@ -360,12 +388,11 @@ export async function sendTaskCompletionNotification(
   userName: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-completion`, {
+    const dateStr = completedDate ? completedDate.toLocaleDateString() : 'Recently';
+    const message = formatTaskCompletionMessage(taskTitle, completedBy, dateStr, userName);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      taskTitle,
-      completedBy,
-      completedDate,
-      userName
+      message
     });
     
     return response.data.success === true;
@@ -392,12 +419,10 @@ export async function sendTaskRevocationNotification(
   userName: string
 ): Promise<boolean> {
   try {
-    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/notify-task-revocation`, {
+    const message = formatTaskRevocationMessage(taskTitle, revokedBy, reason, userName);
+    const response = await axios.post(`${WHATSAPP_BOT_URL}/api/send`, {
       to: phone,
-      taskTitle,
-      revokedBy,
-      reason,
-      userName
+      message
     });
     
     return response.data.success === true;
@@ -418,6 +443,7 @@ export default {
   formatTaskStatusChangeMessage,
   formatTaskCompletionMessage,
   formatTaskRevocationMessage,
+  formatNoticeMessage,
   sendTaskAssignmentNotification,
   sendTaskReminderNotification,
   sendAdminNotification,

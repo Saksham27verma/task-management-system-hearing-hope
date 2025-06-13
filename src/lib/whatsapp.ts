@@ -95,16 +95,12 @@ async function sendTaskNotification(
   assignerName: string
 ): Promise<boolean> {
   try {
+    const message = botUtils.formatTaskAssignmentMessage(taskTitle, taskDescription, dueDate, assigneeName, assignerName);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-task', 
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send', 
       { 
         to: phone, 
-        taskTitle,
-        taskDescription,
-        dueDate,
-        assigneeName,
-        assignerName
+        message
       }
     );
     
@@ -130,14 +126,12 @@ async function sendReminderNotification(
   timeRemaining: string
 ): Promise<boolean> {
   try {
+    const message = botUtils.formatTaskReminderMessage(taskTitle, assigneeName, timeRemaining);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-reminder') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-reminder',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone, 
-        taskTitle,
-        assigneeName,
-        timeRemaining
+        message
       }
     );
     
@@ -159,12 +153,12 @@ async function sendAdminNotification(
   message: string
 ): Promise<boolean> {
   try {
+    const formattedMessage = botUtils.formatAdminNotificationMessage(message);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-admin') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-admin',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone, 
-        message
+        message: formattedMessage
       }
     );
     
@@ -192,15 +186,12 @@ async function sendTaskStatusNotification(
   userName: string
 ): Promise<boolean> {
   try {
+    const message = botUtils.formatTaskStatusChangeMessage(taskTitle, previousStatus, newStatus, userName);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-status') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-task-status',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone,
-        taskTitle,
-        previousStatus,
-        newStatus,
-        userName
+        message
       }
     );
     
@@ -228,15 +219,13 @@ async function sendTaskCompletionNotification(
   userName: string
 ): Promise<boolean> {
   try {
+    const dateStr = completedDate.toLocaleDateString();
+    const message = botUtils.formatTaskCompletionMessage(taskTitle, completedBy, dateStr, userName);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-completion') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-task-completion',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone,
-        taskTitle,
-        completedBy,
-        completedDate,
-        userName
+        message
       }
     );
     
@@ -264,15 +253,12 @@ async function sendTaskRevocationNotification(
   userName: string
 ): Promise<boolean> {
   try {
+    const message = botUtils.formatTaskRevocationMessage(taskTitle, revokedBy, reason, userName);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-task-revocation') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-task-revocation',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone,
-        taskTitle,
-        revokedBy,
-        reason,
-        userName
+        message
       }
     );
     
@@ -288,9 +274,9 @@ async function sendTaskRevocationNotification(
  * @param phone Recipient phone number
  * @param title Notice title
  * @param content Notice content
- * @param posterName Name of the person who posted the notice
- * @param isImportant Whether the notice is marked as important
- * @param userName Recipient's name
+ * @param posterName Who posted the notice
+ * @param isImportant Whether the notice is important
+ * @param userName User's name
  * @returns Promise with the result
  */
 async function sendNoticeNotification(
@@ -302,16 +288,12 @@ async function sendNoticeNotification(
   userName: string
 ): Promise<boolean> {
   try {
+    const message = botUtils.formatNoticeMessage(title, content, posterName, isImportant, userName);
     const response = await axios.post(
-      process.env.WHATSAPP_BOT_URL?.replace('/api/send', '/api/notify-notice') || 
-      'https://hope-whatsapp-bot.onrender.com/api/notify-notice',
+      process.env.WHATSAPP_BOT_URL || 'https://hope-whatsapp-bot.onrender.com/api/send',
       { 
         to: phone,
-        title,
-        content,
-        posterName,
-        isImportant,
-        userName
+        message
       }
     );
     
