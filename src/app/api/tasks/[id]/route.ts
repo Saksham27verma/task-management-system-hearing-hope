@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth, hasRole } from '@/lib/auth';
+import { notifyTaskStatusChange } from '@/lib/whatsapp';
 import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, updateTaskEvent, deleteTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
 import User from '@/models/User';

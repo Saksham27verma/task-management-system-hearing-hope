@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
+import { notifyTaskCompletion } from '@/lib/whatsapp';
 import User from '@/models/User';
 import { addDays, addWeeks, addMonths } from 'date-fns';
 import Notification from '@/models/Notification';

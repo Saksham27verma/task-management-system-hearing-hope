@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
+import { notifyTaskRevocation } from '@/lib/whatsapp';
 import User from '@/models/User';
 import Notification from '@/models/Notification';
 
@@ -151,6 +152,66 @@ export async function POST(
               </div>
             `
           );
+        }
+        
+        // Send WhatsApp notifications for task revocation
+        try {
+          console.log('[WhatsApp Debug - Task Revocation] Starting WhatsApp notification process');
+          console.log('[WhatsApp Debug - Task Revocation] Task title:', task.title);
+          console.log('[WhatsApp Debug - Task Revocation] Revoking admin:', adminName);
+          console.log('[WhatsApp Debug - Task Revocation] Reason:', reason);
+          
+          // Collect all users who should be notified via WhatsApp
+          const whatsappNotifyIds = [];
+          
+          // Add all assignees
+          if (Array.isArray(task.assignedTo)) {
+            for (const assignee of task.assignedTo) {
+              if (assignee && assignee._id) {
+                whatsappNotifyIds.push(assignee._id.toString());
+                console.log('[WhatsApp Debug - Task Revocation] Added assignee to notify list:', assignee._id.toString());
+              }
+            }
+          }
+          
+          // Add task assigner if different from current admin
+          if (task.assignedBy && task.assignedBy._id.toString() !== user.userId) {
+            whatsappNotifyIds.push(task.assignedBy._id.toString());
+            console.log('[WhatsApp Debug - Task Revocation] Added assigner to notify list:', task.assignedBy._id.toString());
+          }
+          
+          console.log('[WhatsApp Debug - Task Revocation] Total users to notify:', whatsappNotifyIds.length);
+          console.log('[WhatsApp Debug - Task Revocation] User IDs to notify:', whatsappNotifyIds);
+          
+          // Send WhatsApp notifications
+          if (whatsappNotifyIds.length > 0) {
+            console.log('[WhatsApp Debug - Task Revocation] Calling notifyTaskRevocation function...');
+            
+            const result = await notifyTaskRevocation(
+              task.title,
+              task._id.toString(),
+              user.userId,
+              reason,
+              whatsappNotifyIds
+            );
+            
+            console.log('[WhatsApp Debug - Task Revocation] notifyTaskRevocation result:', result);
+            
+            if (result.success) {
+              console.log(`[WhatsApp] ✅ Task revocation notifications sent successfully for: ${task.title}`);
+            } else {
+              console.log(`[WhatsApp] ❌ Task revocation notifications failed for: ${task.title}`);
+              if (result.qrCodes && result.qrCodes.length > 0) {
+                console.log(`[WhatsApp] 📱 Generated ${result.qrCodes.length} QR codes as fallback`);
+              }
+            }
+          } else {
+            console.log('[WhatsApp Debug - Task Revocation] No users to notify, skipping WhatsApp notifications');
+          }
+        } catch (whatsappError) {
+          console.error('[WhatsApp Debug - Task Revocation] Error sending WhatsApp notifications:', whatsappError);
+          console.error('[WhatsApp Debug - Task Revocation] Error stack:', whatsappError.stack);
+          // Continue even if WhatsApp notifications fail
         }
       } catch (notifyError) {
         console.error('Error sending task revocation notifications:', notifyError);

@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Task from '@/models/Task';
 import { withAuth, hasRole } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
+import { notifyTaskAssignees } from '@/lib/whatsapp';
 import User from '@/models/User';
 import GoogleCalendarToken from '@/models/GoogleCalendarToken';
 import { createTaskEvent, getValidAccessToken } from '@/services/googleCalendar';
@@ -317,6 +318,37 @@ export async function POST(request: NextRequest) {
             console.error('Error sending admin email notifications:', adminEmailError);
             // Continue even if admin notification fails
           }
+        }
+        
+        // Send WhatsApp notifications to assigned users
+        try {
+          console.log('[WhatsApp Debug - Task Creation] Attempting to send WhatsApp notifications for task:', title);
+          console.log('[WhatsApp Debug - Task Creation] Assigned users:', assignedTo);
+          console.log('[WhatsApp Debug - Task Creation] Assigner name:', assignerName);
+          console.log('[WhatsApp Debug - Task Creation] Due date:', dueDateFormatted);
+          
+          const whatsappResult = await notifyTaskAssignees(
+            title,
+            description,
+            dueDateFormatted,
+            assignerName,
+            assignedTo
+          );
+          
+          console.log('[WhatsApp Debug - Task Creation] WhatsApp notification result:', whatsappResult);
+          
+          if (whatsappResult.success) {
+            console.log(`[WhatsApp] ✅ Task assignment notifications sent successfully for: ${title}`);
+          } else {
+            console.log(`[WhatsApp] ❌ Task assignment notifications failed for: ${title}`);
+            if (whatsappResult.qrCodes && whatsappResult.qrCodes.length > 0) {
+              console.log(`[WhatsApp] 📱 Generated ${whatsappResult.qrCodes.length} QR codes as fallback`);
+            }
+          }
+        } catch (whatsappError) {
+          console.error('[WhatsApp Debug - Task Creation] Error sending WhatsApp notifications:', whatsappError);
+          console.error('[WhatsApp Debug - Task Creation] Error stack:', whatsappError.stack);
+          // Continue even if WhatsApp notifications fail
         }
       } catch (emailError) {
         console.error('Error sending task assignment emails:', emailError);
