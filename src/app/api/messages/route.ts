@@ -5,6 +5,7 @@ import User from '@/models/User';
 import Task from '@/models/Task';
 import { withAuth } from '@/lib/auth';
 import { sendEmail, emailTemplates, notifyAdmins } from '@/lib/email';
+import { notifyNewMessage } from '@/lib/whatsapp';
 
 // GET /api/messages - Get messages for current user
 export async function GET(request: NextRequest) {
@@ -198,6 +199,36 @@ export async function POST(request: NextRequest) {
       } catch (emailError) {
         console.error('Error sending message notification:', emailError);
         // Continue even if email fails
+      }
+      
+      // Send WhatsApp notification to recipient
+      try {
+        console.log('[WhatsApp Debug - New Message] Attempting to send WhatsApp notification for new message');
+        console.log('[WhatsApp Debug - New Message] Sender:', senderName);
+        console.log('[WhatsApp Debug - New Message] Recipient:', recipient.name);
+        console.log('[WhatsApp Debug - New Message] Subject:', subject);
+        
+        const whatsappResult = await notifyNewMessage(
+          recipientId,
+          senderName,
+          subject,
+          content
+        );
+        
+        console.log('[WhatsApp Debug - New Message] WhatsApp notification result:', whatsappResult);
+        
+        if (whatsappResult.success) {
+          console.log(`[WhatsApp] ✅ New message notification sent successfully to ${recipient.name}`);
+        } else {
+          console.log(`[WhatsApp] ❌ New message notification failed for ${recipient.name}`);
+          if (whatsappResult.qrCodes && whatsappResult.qrCodes.length > 0) {
+            console.log(`[WhatsApp] 📱 Generated ${whatsappResult.qrCodes.length} QR codes as fallback`);
+          }
+        }
+      } catch (whatsappError) {
+        console.error('[WhatsApp Debug - New Message] Error sending WhatsApp notification:', whatsappError);
+        console.error('[WhatsApp Debug - New Message] Error stack:', whatsappError.stack);
+        // Continue even if WhatsApp notification fails
       }
       
       // Notify all super admins about the new message

@@ -261,6 +261,69 @@ export async function POST(
         // Continue even if email fails
       }
       
+      // Send WhatsApp notifications for task completion
+      try {
+        console.log('[WhatsApp Debug - Task Completion Route] Starting WhatsApp notification process');
+        console.log('[WhatsApp Debug - Task Completion Route] Task title:', task.title);
+        console.log('[WhatsApp Debug - Task Completion Route] Completed by:', completedByName);
+        console.log('[WhatsApp Debug - Task Completion Route] Remarks:', remarks);
+        
+        // Collect all users who should be notified via WhatsApp
+        const whatsappNotifyIds = [];
+        
+        // Add task assigner if different from current user
+        if (task.assignedBy._id.toString() !== user.userId) {
+          whatsappNotifyIds.push(task.assignedBy._id.toString());
+          console.log('[WhatsApp Debug - Task Completion Route] Added assigner to notify list:', task.assignedBy._id.toString());
+        }
+        
+        // Add all assignees except the current user
+        if (Array.isArray(task.assignedTo)) {
+          for (const assignee of task.assignedTo) {
+            if (assignee._id.toString() !== user.userId) {
+              whatsappNotifyIds.push(assignee._id.toString());
+              console.log('[WhatsApp Debug - Task Completion Route] Added assignee to notify list:', assignee._id.toString());
+            }
+          }
+        } else if (task.assignedTo._id.toString() !== user.userId) {
+          whatsappNotifyIds.push(task.assignedTo._id.toString());
+          console.log('[WhatsApp Debug - Task Completion Route] Added single assignee to notify list:', task.assignedTo._id.toString());
+        }
+        
+        console.log('[WhatsApp Debug - Task Completion Route] Total users to notify:', whatsappNotifyIds.length);
+        console.log('[WhatsApp Debug - Task Completion Route] User IDs to notify:', whatsappNotifyIds);
+        
+        // Send WhatsApp notifications
+        if (whatsappNotifyIds.length > 0) {
+          console.log('[WhatsApp Debug - Task Completion Route] Calling notifyTaskCompletion function...');
+          
+          const result = await notifyTaskCompletion(
+            task.title,
+            task._id.toString(),
+            completedByName,
+            new Date(),
+            whatsappNotifyIds
+          );
+          
+          console.log('[WhatsApp Debug - Task Completion Route] notifyTaskCompletion result:', result);
+          
+          if (result.success) {
+            console.log(`[WhatsApp] ✅ Task completion notifications sent successfully for: ${task.title}`);
+          } else {
+            console.log(`[WhatsApp] ❌ Task completion notifications failed for: ${task.title}`);
+            if (result.qrCodes && result.qrCodes.length > 0) {
+              console.log(`[WhatsApp] 📱 Generated ${result.qrCodes.length} QR codes as fallback`);
+            }
+          }
+        } else {
+          console.log('[WhatsApp Debug - Task Completion Route] No users to notify, skipping WhatsApp notifications');
+        }
+      } catch (whatsappError) {
+        console.error('[WhatsApp Debug - Task Completion Route] Error sending WhatsApp notifications:', whatsappError);
+        console.error('[WhatsApp Debug - Task Completion Route] Error stack:', whatsappError.stack);
+        // Continue even if WhatsApp notifications fail
+      }
+      
       return NextResponse.json({
         success: true,
         message: 'Task marked as complete successfully',
